@@ -271,6 +271,34 @@
 		gpio-controller;
 		#gpio-cells = <2>;
     };
+
+	isl79985: isl79985_mipi@3c {
+		compatible = "isl79985";
+		reg = <0x3c>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_isl79985_rst>;
+		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+		clock-names = "refclk";
+		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+		assigned-clock-rates = <24000000>;
+		csi_id = <0>;
+		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+		mclk = <24000000>;
+		mclk_source = <0>;
+		mipi_csi;
+		status = "okay";
+
+		port@0 {
+			isl79985_mipi_0_ep: endpoint {
+				remote-endpoint = <&mipi_csi0_ep_is79989>;
+				data-lanes = <1 2>;
+				clock-lanes = <0>;
+			};
+		};
+
+	};
 };
 
 &i2c3 {
@@ -457,9 +485,8 @@
 	pinctrl_hog: hoggrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO00__GPIO1_IO00		0x59	/* USB_OTG_PWR_EN 	*/
-			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01		0x116 	/* USB_OTG_OC 		*/
-			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05		0x19 	/* USB_OTGPOK 		*/
-			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x19 	/* MIPI_RESET# 		*/
+			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01		0x116 	/* TP54		 	*/
+			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05		0x19 	/* CAM1 RST 		*/
 			MX8MP_IOMUXC_GPIO1_IO07__GPIO1_IO07		0x16  	/* USB2_12_EN	 	*/
 			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08		0x16  	/* TPS2069DDBVT-EN 	*/
 			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09		0x16 	/* USB2_5_EN 		*/
@@ -475,6 +502,12 @@
 
 
 
+		>;
+	};
+
+	pinctrl_isl79985_rst: isl79985_rst {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 RST */
 		>;
 	};
 
@@ -741,12 +774,12 @@
 &mipi_csi_0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	status = "disabled";
+	status = "okay";
 
 	port@0 {
 		reg = <0>;
-		mipi_csi0_ep: endpoint {
-			/* remote-endpoint = <&ov5640_mipi_0_ep>; */
+		mipi_csi0_ep_is79989: endpoint {
+			remote-endpoint = <&isl79985_mipi_0_ep>;
 			data-lanes = <2>;
 			csis-hs-settle = <13>;
 			csis-clk-settle = <2>;
@@ -777,14 +810,14 @@
 };
 
 &isi_0 {
-	status = "disabled";
+	status = "okay";
 
 	cap_device {
-		status = "disabled";
+		status = "okay";
 	};
 
 	m2m_device {
-		status = "disabled";
+		status = "okay";
 	};
 };
 

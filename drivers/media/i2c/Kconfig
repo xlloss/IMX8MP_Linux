@@ -1168,6 +1168,14 @@ config VIDEO_ST_MIPID02
 	  To compile this driver as a module, choose M here: the
 	  module will be called st-mipid02.
 
+config VIDEO_ISL79985
+	tristate "Renesas 4-CH NTSC/PAL/SECAM Video Decoder with CSI2 Output"
+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	select V4L2_FWNODE
+	help
+	  Support for Renesas 4-Channel Differential Input Video Decoder with
+              MIPI-CSI2 Output for Around View Applications.
 endmenu
 
 endif
