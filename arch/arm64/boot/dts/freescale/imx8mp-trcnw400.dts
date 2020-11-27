@@ -68,6 +68,33 @@
 				    100>;
 		default-brightness-level = <80>;
 	};
+
+	panel-lvds0 {
+		compatible = "panel-lvds";
+
+		width-mm = <261>;
+		height-mm = <163>;
+		data-mapping = "jeida-24";
+
+		panel-timing {
+			/* 800x600 @60Hz */
+			clock-frequency = <40000000>;
+			hactive = <800>;
+			vactive = <600>;
+			hsync-len = <128>;
+			hfront-porch = <40>;
+			hback-porch = <88>;
+			vsync-len = <4>;
+			vfront-porch = <1>;
+			vback-porch = <23>;
+		};
+
+		port {
+			panel_lvds0_in: endpoint {
+				remote-endpoint = <&lvds0_port_1>;
+			};
+		};
+	};
 };
 
 &clk {
@@ -335,7 +362,7 @@
 };
 
 &ldb {
-	status = "disabled";
+	status = "okay";
 
 	lvds-channel@0 {
 		fsl,data-mapping = "jeida";
@@ -344,9 +371,8 @@
 
 		port@1 {
 			reg = <1>;
-
-			lvds_out: endpoint {
-				/* remote-endpoint = <&it6263_in>; */
+			lvds0_port_1: endpoint {
+					remote-endpoint = <&panel_lvds0_in>;
 			};
 		};
 	};
