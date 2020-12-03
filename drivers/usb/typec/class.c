@@ -1471,6 +1471,16 @@ enum typec_orientation typec_get_orientation(struct typec_port *port)
 EXPORT_SYMBOL_GPL(typec_get_orientation);
 
 /**
+ * typec_get_drvdata - Return private driver data pointer
+ * @port: USB Type-C port
+ */
+void *typec_get_drvdata(struct typec_port *port)
+{
+       return dev_get_drvdata(&port->dev);
+}
+EXPORT_SYMBOL_GPL(typec_get_drvdata);
+
+/**
  * typec_set_mode - Set mode of operation for USB Type-C connector
  * @port: USB Type-C connector
  * @mode: Accessory Mode, USB Operation or Safe State
@@ -1590,6 +1600,7 @@ struct typec_port *typec_register_port(struct device *parent,
 	port->dev.type = &typec_port_dev_type;
 	dev_set_name(&port->dev, "port%d", id);
 
+	dev_set_drvdata(&port->dev, cap->driver_data);
 	port->sw = typec_switch_get(&port->dev);
 	if (IS_ERR(port->sw)) {
 		ret = PTR_ERR(port->sw);
