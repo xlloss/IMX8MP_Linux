@@ -28,7 +28,6 @@
 #include <linux/of_graph.h>
 #include <linux/videodev2.h>
 #include <linux/v4l2-dv-timings.h>
-#include <linux/clk.h>
 #include <media/v4l2-dv-timings.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
@@ -36,7 +35,7 @@
 #include <media/v4l2-event.h>
 #include <media/v4l2-fwnode.h>
 #include <linux/mutex.h>
-
+#include <linux/gpio/consumer.h>
 
 /* PAGE 0 */
 #define ISL79985_REG_CHIP_ID 0x00
@@ -122,6 +121,7 @@ struct isl79985 {
 	struct isl79985_ctrls ctrls;
 	struct media_pad pad;
 	struct mutex mutex;
+	struct gpio_desc *reset_gpio;
 	u32 mbus_fmt_code;
 	u32 refclk_hz;
 	u32 slave_addr;
@@ -375,6 +375,21 @@ static int isl79985_s_ctrl(struct v4l2_ctrl *ctrl)
 	return -EINVAL;
 }
 
+static void isl79985_reset(struct isl79985 *state)
+{
+	if (!state->reset_gpio)
+		return;
+
+	gpiod_set_value_cansleep(state->reset_gpio, 0);
+	usleep_range(1000, 2000);
+
+	gpiod_set_value_cansleep(state->reset_gpio, 1);
+	usleep_range(1000, 2000);
+
+	gpiod_set_value_cansleep(state->reset_gpio, 0);
+	usleep_range(20000, 25000);
+}
+
 static int isl79985_s_power(struct v4l2_subdev *sd, int on)
 {
 	struct isl79985 *state = sd_to_state(sd);
@@ -383,6 +398,9 @@ static int isl79985_s_power(struct v4l2_subdev *sd, int on)
 
 	pr_info("%s on %d\n", __func__, on);
 	mutex_lock(&state->mutex);
+
+	isl79985_reset(state);
+
 	isl79985_change_page(state, REG_PAGE_5);
 	if (on == 1)
 		ret = write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x0F);
@@ -752,6 +770,14 @@ static int isl79985_probe_of(struct isl79985 *state)
 	}
 
 	state->bus = endpoint.bus.mipi_csi2;
+
+	/* request optional reset pin */
+	state->reset_gpio = devm_gpiod_get_optional(dev, "reset",
+						     GPIOD_OUT_HIGH);
+	if (IS_ERR(state->reset_gpio)) {
+		ret = -EINVAL;
+		goto free_endpoint;
+	}
 
 	ret = 0;
 	goto free_endpoint;
