@@ -29,7 +29,6 @@ struct dac5571 {
 	struct i2c_client *client;
 	struct backlight_device *bl;
 	struct device *dev;
-	struct gpio_desc *enable_gpio;
 	struct regulator *regulator;
 };
 
@@ -161,6 +160,7 @@ static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 {
 	struct dac5571 *dac5571_dev;
 	int ret;
+	u32 def_bl_value;
 
 	if (!i2c_check_functionality(cl->adapter,
 		I2C_FUNC_SMBUS_BYTE_DATA | I2C_FUNC_SMBUS_WORD_DATA))
@@ -173,7 +173,7 @@ static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 	dac5571_dev->client = cl;
 	dac5571_dev->dev = &cl->dev;
 
-	dac5571_dev->regulator = devm_regulator_get(dac5571_dev->dev, "bl");
+	dac5571_dev->regulator = devm_regulator_get(dac5571_dev->dev, "bl-vcc");
 	if (IS_ERR(dac5571_dev->regulator)) {
 		dev_err(dac5571_dev->dev, "cannot get regulator\n");
 		return PTR_ERR(dac5571_dev->regulator);
@@ -181,7 +181,14 @@ static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 
 	i2c_set_clientdata(cl, dac5571_dev);
 
-	dac5571_dev->initial_brightness = DEFAULT_BL_VALE;
+	ret = of_property_read_u32(cl->dev.of_node, "default-brightness-level",
+				   &def_bl_value);
+	if (ret < 0) {
+		dev_warn(&cl->dev, "can't find default-brightness-level in DT\n");
+		def_bl_value = DEFAULT_BL_VALE;
+	}
+
+	dac5571_dev->initial_brightness = def_bl_value;
 	ret = dac5571_backlight_register(dac5571_dev);
 	if (ret) {
 		dev_err(dac5571_dev->dev,
@@ -240,6 +247,6 @@ static struct i2c_driver dac5571_driver = {
 
 module_i2c_driver(dac5571_driver);
 
-MODULE_DESCRIPTION("DAC5571 Backlight driver");
+MODULE_DESCRIPTION("DAC5571 Backlight Driver");
 MODULE_AUTHOR("Slash Huang <slash.linux.c@gmail.com>");
 MODULE_LICENSE("GPL");
