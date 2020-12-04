@@ -218,7 +218,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi2 &pinctrl_ecspi2_cs>;
 	cs-gpios = <&gpio5 13 GPIO_ACTIVE_LOW>;
-	status = "disabled";
+	status = "okay";
 
 	spidev1: spi@0 {
 		reg = <0>;
@@ -508,13 +508,6 @@
 		reg = <0x20>;
 		gpio-controller;
 		#gpio-cells = <2>;
-	};
-
-	lcd_backlight: lcd_backlight@60 {
-		compatible = "topcon,bl";
-		reg = <0x60>;
-		enable-gpios = <&gpio5 13 GPIO_ACTIVE_HIGH>;
-		status = "okay";
 	};
 
 	ov5640_1: ov5640_mipi@3c {
