@@ -380,6 +380,11 @@
 		compatible = "s35390a";
 		reg = <0x30>;
     };
+
+    f75387: f75387@5c {
+		compatible = "f75387";
+		reg = <0x5c>;
+    };
 };
 
 
