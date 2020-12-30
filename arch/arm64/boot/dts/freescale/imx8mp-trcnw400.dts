@@ -385,6 +385,11 @@
 		compatible = "f75387";
 		reg = <0x2d>;
     };
+
+	lm75: board-temp-sensor@4c {
+		compatible = "national,lm75b";
+		reg = <0x4c>;
+	};
 };
 
 
