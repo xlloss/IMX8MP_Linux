@@ -405,7 +405,7 @@
 };
 
 &lcdif2 {
-	status = "disabled";
+	status = "okay";
 };
 
 &lcdif3 {
@@ -430,7 +430,7 @@
 };
 
 &ldb_phy {
-	status = "disabled";
+	status = "okay";
 };
 
 &pcie{
@@ -931,4 +931,28 @@
 	cap_device {
 		status = "disabled";
 	};
+};
+
+&irqsteer_hdmi {
+	status = "okay";
+};
+
+&hdmimix_clk {
+	status = "okay";
+};
+
+&hdmimix_reset {
+	status = "okay";
+};
+
+&hdmi_pavi {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmiphy {
+	status = "okay";
 };
