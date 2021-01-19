@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/stmmac.h>
 
+#include <linux/if_ether.h>
 #include "stmmac_platform.h"
 
 #ifdef CONFIG_IMX_SCU_SOC
@@ -36,6 +37,8 @@
 #define GPR_ENET_QOS_CLK_GEN_EN		(0x1 << 19)
 #define GPR_ENET_QOS_CLK_TX_CLK_SEL	(0x1 << 20)
 #define GPR_ENET_QOS_RGMII_EN		(0x1 << 21)
+
+u8 par_macaddr[ETH_ALEN];
 
 struct imx_dwmac_ops {
 	u32 addr_width;
@@ -283,6 +286,20 @@ imx_dwmac_parse_dt(struct imx_priv_data *dwmac, struct device *dev)
 	return err;
 }
 
+static int __init ethaddr_cmdline_opt(char *str)
+{
+       int i;
+
+       i = sscanf(str, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+               &par_macaddr[0], &par_macaddr[1], &par_macaddr[2],
+               &par_macaddr[3], &par_macaddr[4], &par_macaddr[5]);
+
+       if (i != ETH_ALEN)
+               pr_err("smsc75xx set ethaddr error\r\n");
+
+       return 0;
+}
+
 static int imx_dwmac_probe(struct platform_device *pdev)
 {
 	struct plat_stmmacenet_data *plat_dat;
@@ -303,6 +320,7 @@ static int imx_dwmac_probe(struct platform_device *pdev)
 	if (IS_ERR(plat_dat))
 		return PTR_ERR(plat_dat);
 
+	stmmac_res.mac = par_macaddr;
 	data = of_device_get_match_data(&pdev->dev);
 	if (!data) {
 		dev_err(&pdev->dev, "failed to get match data\n");
@@ -355,6 +373,8 @@ err_match_data:
 	stmmac_remove_config_dt(pdev, plat_dat);
 	return ret;
 }
+
+__setup("ethaddr_eqos=", ethaddr_cmdline_opt);
 
 int imx_dwmac_remove(struct platform_device *pdev)
 {
