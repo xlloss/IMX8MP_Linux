@@ -12,16 +12,16 @@
 	model = "NXP i.MX8MPlus DFI board";
 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
 
-	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		rpmsg_reserved: rpmsg@0x55800000 {
-			no-map;
-			reg = <0 0x55800000 0 0x800000>;
-		};
-	};
+//	reserved-memory {
+//		#address-cells = <2>;
+//		#size-cells = <2>;
+//		ranges;
+//	
+//		rpmsg_reserved: rpmsg@0x55800000 {
+//			no-map;
+//			reg = <0 0x55800000 0 0x800000>;
+//		};
+//	};
 
 	chosen {
 		stdout-path = &uart2;
@@ -448,7 +448,7 @@
 			  <&clk IMX8MP_CLK_PCIE_AUX>;
 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
 				 <&clk IMX8MP_SYS_PLL2_50M>;
-	reserved-region = <&rpmsg_reserved>;
+//	reserved-region = <&rpmsg_reserved>;
 	status = "disabled";
 };
 
@@ -489,20 +489,21 @@
 	fsl,phy-comp-dis-tune = <7>;
 	fsl,pcs-tx-deemph-3p5db = <0x21>;
 	fsl,phy-pcs-tx-swing-full = <0x7f>;
-	status = "disabled";
+	status = "okay";
 };
 
 &usb3_0 {
-	status = "disabled";
+	status = "okay";
 };
 
 &usb_dwc3_0 {
-	dr_mode = "otg";
+	//dr_mode = "otg";
+	dr_mode = "peripheral";
 	hnp-disable;
 	srp-disable;
 	adp-disable;
-	usb-role-switch;
-	status = "disabled";
+	//usb-role-switch;
+	status = "okay";
 
 	/*
 	port {
