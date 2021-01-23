@@ -177,7 +177,7 @@
 
 		ethphy0: ethernet-phy@1 {
 			compatible = "ethernet-phy-ieee802.3-c22";
-			reg = <1>;
+			reg = <7>;
 			eee-broken-1000t;
 		};
 	};
@@ -197,7 +197,7 @@
 
 		ethphy1: ethernet-phy@1 {
 			compatible = "ethernet-phy-ieee802.3-c22";
-			reg = <1>;
+			reg = <5>;
 			eee-broken-1000t;
 		};
 	};
