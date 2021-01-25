@@ -497,11 +497,12 @@
 };
 
 &usb_dwc3_0 {
-	dr_mode = "otg";
+	/* dr_mode = "otg"; */
+	dr_mode = "peripheral";
 	hnp-disable;
 	srp-disable;
 	adp-disable;
-	usb-role-switch;
+	/* usb-role-switch; */
 	status = "okay";
 
 	/*
