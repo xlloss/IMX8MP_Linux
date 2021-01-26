@@ -28,7 +28,7 @@
 	};
 
 	reg_can1_stby: regulator-can1-stby {
-		status = "disabled";
+		status = "okay";
 		compatible = "regulator-fixed";
 		regulator-name = "can1-stby";
 		pinctrl-names = "default";
