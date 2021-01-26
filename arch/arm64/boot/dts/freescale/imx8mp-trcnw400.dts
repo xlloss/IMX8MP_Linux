@@ -403,6 +403,11 @@
 		compatible = "national,lm75b";
 		reg = <0x4c>;
 	};
+
+	at24c256: eeprom@50 {
+		compatible = "atmel,24c256";
+		reg = <0x50>;
+	};
 };
 
 
