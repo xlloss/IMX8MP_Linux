@@ -354,9 +354,9 @@
     };
 
 	/* ISL79985 */
-	isl79985: isl79985_mipi@3c {
+	isl79985: isl79985_mipi@44 {
 		compatible = "isl79985";
-		reg = <0x3c>;
+		reg = <0x44>;
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_isl79985_rst>;
@@ -929,7 +929,7 @@
 };
 
 &cameradev {
-	status = "disabled";
+	status = "okay";
 };
 
 &isi_0 {
