@@ -449,8 +449,12 @@ static uint16_t find_hs_configure(struct v4l2_subdev_format *sd_fmt)
 	for (i = 0; i < ARRAY_SIZE(hs_setting); i++) {
 		if (hs_setting[i].width  == fmt->width &&
 		    hs_setting[i].height == fmt->height &&
-		    hs_setting[i].frame_rate == frame_rate)
+		    hs_setting[i].frame_rate == frame_rate) {
+		    pr_err("hs_setting[%d].width %d", i, hs_setting[i].width);
+		    pr_err("hs_setting[%d].height  %d", i, hs_setting[i].height);
+		    pr_err("hs_setting[%d].frame_rate  %d", i, hs_setting[i].frame_rate);
 			return hs_setting[i].val;
+		}
 	}
 
 	if (i == ARRAY_SIZE(hs_setting))
@@ -1001,7 +1005,7 @@ static int mipi_csi2_probe(struct platform_device *pdev)
 	struct resource *mem_res;
 	struct mxc_mipi_csi2_dev *csi2dev;
 	int ret = -ENOMEM;
-
+pr_err("SLASH ---> mipi_csi2_probe imx8-mipi-csi2.c\n");
 	csi2dev = devm_kzalloc(dev, sizeof(*csi2dev), GFP_KERNEL);
 	if (!csi2dev)
 		return -ENOMEM;

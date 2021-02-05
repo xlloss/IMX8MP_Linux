@@ -10,7 +10,8 @@
 
 #define	ISI_DOWNSCALE_THRESHOLD		0x4000
 
-#ifdef DEBUG
+//#ifdef DEBUG
+#if 1
 void dump_isi_regs(struct mxc_isi_dev *mxc_isi)
 {
 	struct device *dev = &mxc_isi->pdev->dev;
@@ -61,10 +62,10 @@ void dump_isi_regs(struct mxc_isi_dev *mxc_isi)
 	};
 	u32 i;
 
-	dev_dbg(dev, "ISI CHNLC register dump, isi%d\n", mxc_isi->id);
+	dev_info(dev, "ISI CHNLC register dump, isi%d\n", mxc_isi->id);
 	for (i = 0; i < ARRAY_SIZE(registers); i++) {
 		u32 reg = readl(mxc_isi->regs + registers[i].offset);
-		dev_dbg(dev, "%20s[0x%.2x]: %.2x\n",
+		dev_info(dev, "%20s[0x%.2x]: %.2x\n",
 			registers[i].name, registers[i].offset, reg);
 	}
 }
@@ -320,8 +321,8 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *mxc_isi,
 		val |= CHNL_IMG_CTRL_CSC_BYPASS_ENABLE;
 	}
 
-	printk_pixelformat("input fmt", src_fmt->fourcc);
-	printk_pixelformat("output fmt", dst_fmt->fourcc);
+	printk_pixelformat("TEST input fmt", src_fmt->fourcc);
+	printk_pixelformat("TEST output fmt", dst_fmt->fourcc);
 
 	if (mxc_isi->cscen) {
 		writel(coeffs[csc][0], mxc_isi->regs + CHNL_CSC_COEFF0);

@@ -147,10 +147,17 @@ struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat,
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
 		fmt = &mxc_isi_out_formats[i];
-		if (pixelformat && fmt->fourcc == *pixelformat)
+
+		if (pixelformat && fmt->fourcc == *pixelformat) {
+			pr_info("%s mxc_isi_out_formats[%d] pixelformat 0x%x\n", __func__, i, *pixelformat);
 			return fmt;
-		if (mbus_code && fmt->mbus_code == *mbus_code)
+		}
+
+		if (mbus_code && fmt->mbus_code == *mbus_code) {
+			pr_info("%s mxc_isi_out_formats[%d] mbus_code 0x%x\n", __func__, i, *mbus_code);
 			return fmt;
+		}
+
 		if (index == id)
 			def_fmt = fmt;
 		id++;
@@ -838,7 +845,7 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 	struct mxc_isi_fmt *fmt;
 	int i;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_info(&isi_cap->pdev->dev, "%s\n", __func__);
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
 		fmt = &mxc_isi_out_formats[i];
@@ -938,7 +945,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	 * Step5: Update mxc isi channel configuration.
 	 */
 
-	dev_dbg(&isi_cap->pdev->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
+	dev_info(&isi_cap->pdev->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
 	if (vb2_is_busy(&isi_cap->vb2_q))
 		return -EBUSY;
 
@@ -954,6 +961,9 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 			"format(%.4s) is not support!\n", (char *)&pix->pixelformat);
 		return -EINVAL;
 	}
+
+	dev_info(&isi_cap->pdev->dev, "fmt->fourcc 0x%x\n", fmt->fourcc);
+
 
 	/* update out put frame size and formate */
 	if (pix->height <= 0 || pix->width <= 0)
@@ -1047,7 +1057,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
 	int ret;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_info(&isi_cap->pdev->dev, "%s\n", __func__);
 
 	ret = mxc_isi_config_parm(isi_cap);
 	if (ret < 0)

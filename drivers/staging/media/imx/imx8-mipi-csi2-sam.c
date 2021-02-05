@@ -220,7 +220,9 @@
 #define MIPI_CSIS_PKTDATA_EVEN		0x3000
 #define MIPI_CSIS_PKTDATA_SIZE		SZ_4K
 
-#define DEFAULT_SCLK_CSIS_FREQ		166000000UL
+//#define DEFAULT_SCLK_CSIS_FREQ		166000000UL
+#define DEFAULT_SCLK_CSIS_FREQ		100000000UL
+#define DEFAULT_SCLK_CSIS_FREQ_216		216000000UL
 
 /* display_mix_clk_en_csr */
 #define DISP_MIX_GASKET_0_CTRL			0x00
@@ -393,7 +395,7 @@ static const struct csis_pix_format mipi_csis_formats[] = {
 		.data_alignment = 24,
 	}, {
 		.code = MEDIA_BUS_FMT_UYVY8_2X8,
-		.code = MEDIA_BUS_FMT_YUYV8_2X8,
+		//.code = MEDIA_BUS_FMT_YUYV8_2X8,
 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_YCBCR422_8BIT,
 		.data_alignment = 16,
 	}, {
@@ -404,7 +406,8 @@ static const struct csis_pix_format mipi_csis_formats[] = {
 		.code = MEDIA_BUS_FMT_SBGGR8_1X8,
 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW8,
 		.data_alignment = 8,
-	}
+
+	},
 };
 
 #define mipi_csis_write(__csis, __r, __v) writel(__v, __csis->regs + __r)
@@ -639,6 +642,8 @@ static void __mipi_csis_set_format(struct csi_state *state)
 	if (state->csis_fmt->fmt_reg == MIPI_CSIS_ISPCFG_FMT_YCBCR422_8BIT)
 		val |= (PIXEL_MODE_DUAL_PIXEL_MODE <<
 			MIPI_CSIS_ISPCONFIG_CH0_PIXEL_MODE_SHIFT);
+
+	//val |= (1 << 10);
 	mipi_csis_write(state, MIPI_CSIS_ISPCONFIG_CH0, val);
 
 	/* Pixel resolution */
@@ -756,6 +761,7 @@ static int mipi_csis_clk_get(struct csi_state *state)
 
 	/* Set clock rate */
 	if (state->clk_frequency) {
+		dev_info(dev, "SLASH set mipi clk rate=%d\n", state->clk_frequency);
 		ret = clk_set_rate(state->mipi_clk, state->clk_frequency);
 		if (ret < 0) {
 			dev_err(dev, "set rate filed, rate=%d\n", state->clk_frequency);
@@ -1196,6 +1202,8 @@ static int mipi_csis_parse_dt(struct platform_device *pdev,
 	if (of_property_read_u32(node, "clock-frequency", &state->clk_frequency))
 		state->clk_frequency = DEFAULT_SCLK_CSIS_FREQ;
 
+	state->clk_frequency = DEFAULT_SCLK_CSIS_FREQ;
+
 	if (of_property_read_u32(node, "bus-width", &state->max_num_lanes))
 		return -EINVAL;
 
@@ -1211,6 +1219,8 @@ static int mipi_csis_parse_dt(struct platform_device *pdev,
 	of_property_read_u32(node, "data-lanes", &state->num_lanes);
 
 	state->wclk_ext = of_property_read_bool(node, "csis-wclk");
+
+	pr_err("%s state->clk_frequency %u\n", __func__, state->clk_frequency);
 
 	of_node_put(node);
 	return 0;
@@ -1304,7 +1314,7 @@ static int mipi_csis_probe(struct platform_device *pdev)
 	const struct of_device_id *of_id;
 	mipi_csis_phy_reset_t phy_reset_fn;
 	int ret = -ENOMEM;
-
+	pr_err("SLASH ->>>>>fsl,imx8mn-mipi-csi\n");
 	state = devm_kzalloc(dev, sizeof(*state), GFP_KERNEL);
 	if (!state)
 		return -ENOMEM;
