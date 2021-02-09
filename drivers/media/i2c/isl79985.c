@@ -1,7 +1,7 @@
 /*
- * ISL79985 - Renesas Video Decoder driver
+ * ISL79985 - Renesas Video Decoder Driver
  * Slash <slash.huang@dfi.com>
- * Copyright 2013 Cisco Systems, Inc. and/or its affiliates.
+ * Copyright 2021 DFI, Inc. and/or its affiliates.
  *
  * This program is free software; you may redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@ enum {
 	REG_PAGE_3,
 	REG_PAGE_4,
 	REG_PAGE_5,
+	REG_PAGE_INIT,
 	REG_PAGE_1_4 = 0xFF,
 };
 
@@ -136,10 +137,12 @@ struct isl79985 {
 	u32 csi_lanes;
 	u8 channel;
 	u8 input;
-	int cur_page;
+	u8 cur_page;
 	int norm;
 	int streaming;
 };
+
+struct isl79985 *state;
 
 enum {
 	ISL79985_CH1 = 1,
@@ -161,42 +164,61 @@ static inline struct v4l2_subdev *ctrl_to_sd(struct v4l2_ctrl *ctrl)
 
 static int write_reg(struct i2c_client *client, u8 reg, u8 value)
 {
-	u32 tmpaddr ;
 	int ret;
-	struct isl79985 *priv = i2c_get_clientdata(client);
-
-	tmpaddr = client->addr;
-	client->addr = priv->slave_addr;
 
 	ret = i2c_smbus_write_byte_data(client, reg, value);
-	client->addr = tmpaddr;
+	if (ret < 0)
+		pr_err("%s fail\n", __func__);
+
 	return ret;
 }
 
 static int read_reg(struct i2c_client *client, u8 reg)
 {
-	u32 tmpaddr ;
 	int ret;
-	struct isl79985 *priv = i2c_get_clientdata(client);
 
-	tmpaddr = client->addr;
-	client->addr = priv->slave_addr;
 	ret = i2c_smbus_read_byte_data(client, reg);
-	client->addr = tmpaddr;
+	if (ret < 0)
+		pr_err("%s fail\n", __func__);
+
 	return ret;
 }
 
+static int isl79985_change_page(struct i2c_client *client, u8 page)
+{
+	//struct i2c_client *client = state->i2c_client;
+	struct isl79985 *state;
+
+	state = i2c_get_clientdata(client);
+
+	pr_info("%s state->cur_page %d page %d\n", __func__, state->cur_page, page);
+
+//	if (state->cur_page == page)
+//		return 0;
+
+	if (page > REG_PAGE_5 && page != REG_PAGE_1_4) {
+		pr_err("ISL79985 page select fail\n");
+		return -EINVAL;
+	}
+
+	state->cur_page = page;
+	return write_reg(client, ISL79985_REG_PAGE, page);
+}
 
 static ssize_t isl79985_channel_show(struct device *dev,
 				      struct device_attribute *attr,
 				      char *buf)
 {
-	struct isl79985 *state = i2c_get_clientdata(to_i2c_client(dev));
+	struct i2c_client *client = to_i2c_client(dev);
+	struct isl79985 *state = i2c_get_clientdata(client);
 	u8 channel;
 
-	pr_info("slave_addr 0x%x\n", state->slave_addr);
+	if (state == NULL)
+		return -EINVAL;
 
-	channel = (0x0C & read_reg(state->i2c_client, 0x07)) >> 2;
+	isl79985_change_page(client, REG_PAGE_0);
+	channel = (0x0C & read_reg(client, 0x07)) >> 2;
+	pr_info("channel 0x%x\n", channel);
 
 	if (channel == 0)
 		sprintf(buf, "%d\n", 0);
@@ -210,24 +232,27 @@ static ssize_t isl79985_channel_store(struct device *dev,
 				      struct device_attribute *attr,
 				      const char *buf, size_t len)
 {
-	struct isl79985 *state = i2c_get_clientdata(to_i2c_client(dev));
+	struct i2c_client *client = to_i2c_client(dev);
+	struct isl79985 *state = i2c_get_clientdata(client);
 	ssize_t status = 0;
 	long value;
 
-	pr_info("buf %s len %d\n", buf, len);
-
 	if (len > 2)
 		return -EINVAL;
-
 
 	status = kstrtol(buf, 0, &value);
 	if (status)
 		return -EINVAL;
 
+	if (state == NULL)
+		return -EINVAL;
+
+	isl79985_change_page(client, REG_PAGE_0);
+
 	if (value == 0)
-		write_reg(state->i2c_client, 0x07, 0x10);
+		write_reg(client, 0x07, 0x10);
 	else if (value == 1)
-		write_reg(state->i2c_client, 0x07, 0x04);
+		write_reg(client, 0x07, 0x04);
 	else
 		return -EINVAL;
 
@@ -236,29 +261,6 @@ static ssize_t isl79985_channel_store(struct device *dev,
 
 /* sysfs attributes */
 static DEVICE_ATTR_RW(isl79985_channel);
-
-//static DEVICE_ATTR(priv_mem, 0444, et8ek8_priv_mem_read, NULL);
-
-static int isl79985_change_page(struct isl79985 *state, u8 page)
-{
-	struct i2c_client *client = state->i2c_client;
-
-	if (state->cur_page == page)
-		return 0;
-
-	if ((page < REG_PAGE_0 || page > REG_PAGE_5) && page != REG_PAGE_1_4) {
-		pr_err("ISL79985 page select fail\n");
-		return -EINVAL;
-	}
-
-	state->cur_page = page;
-	return write_reg(client, ISL79985_REG_PAGE, page);
-}
-
-static int isl79985_log_status(struct v4l2_subdev *sd)
-{
-	return v4l2_ctrl_subdev_log_status(sd);
-}
 
 static int isl79985_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 {
@@ -271,7 +273,7 @@ static int isl79985_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 
 	pr_info("%s ctrl->id 0x%x\n", __func__, ctrl->id);
 
-	isl79985_change_page(state, state->channel);
+	isl79985_change_page(client, state->channel);
 
 	switch (ctrl->id) {
 	case V4L2_CID_GAIN:
@@ -341,7 +343,7 @@ static int isl79985_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	pr_info("%s ctrl->id 0x%x\n", __func__, ctrl->id);
 
-	isl79985_change_page(state, state->channel);
+	isl79985_change_page(client, state->channel);
 
 	switch (ctrl->id) {
 	case V4L2_CID_GAIN:
@@ -399,7 +401,7 @@ static int isl79985_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	case V4L2_CID_TEST_PATTERN:
 		pr_info("%s ID V4L2_CID_TEST_PATTERN\n", __func__);
-		isl79985_change_page(state, REG_PAGE_5);
+		isl79985_change_page(client, REG_PAGE_5);
 		test_pn = ctrl->val & 0xF0;
 		gen_color = ctrl->val & 0x0C;
 		return write_reg(client, ISL79985_REG_TEST_PATTERN_EN,
@@ -420,7 +422,7 @@ static void isl79985_reset(struct isl79985 *state)
 //	if (!state->reset_gpio)
 //		return;
 
-	isl79985_change_page(state, REG_PAGE_0);
+	isl79985_change_page(client, REG_PAGE_0);
 
 	gpiod_set_value_cansleep(state->reset_gpio, 1);
 	usleep_range(1000, 2000);
@@ -442,23 +444,21 @@ static int isl79985_s_power(struct v4l2_subdev *sd, int on)
 	struct i2c_client *client = state->i2c_client;
 	int ret;
 
-	pr_info("%s on %d\n", __func__, on);
 	mutex_lock(&state->mutex);
-
 	if (on == 1) {
-		isl79985_change_page(state, REG_PAGE_5);
-		ret = write_reg(client, 0x34, 0x18);
-		ret = write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x00);
-		isl79985_change_page(state, REG_PAGE_0);
+		isl79985_change_page(client, REG_PAGE_5);
+		write_reg(client, 0x34, 0x18);
+		write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x00);
 	}
 	else {
-		isl79985_change_page(state, REG_PAGE_5);
-		ret = write_reg(client, 0x34, 0x06);
-		ret = write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x0F);
-		isl79985_change_page(state, REG_PAGE_0);
+		isl79985_change_page(client, REG_PAGE_5);
+		write_reg(client, 0x34, 0x06);
+		write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x0F);
 	}
 	mutex_unlock(&state->mutex);
-	return ret;
+
+	pr_info("%s on %d\n", __func__, on);
+	return 0;
 }
 
 static int no_signal(struct v4l2_subdev *sd)
@@ -469,12 +469,12 @@ static int no_signal(struct v4l2_subdev *sd)
 
 	pr_info("%s\n", __func__);
 
-	reg_ch = ISL79985_REG_CH1_SAT + state->channel - 1;
-	ret = read_reg(i2cdev, reg_ch);
-	ret = ret & ~(CH_DET50_STS);
-
-	if (ret & (VDLOSS_STS | SLOCK_STS | HVLOCK_STS))
-		return V4L2_IN_ST_NO_SIGNAL;
+	//reg_ch = ISL79985_REG_CH1_SAT + state->channel - 1;
+	//ret = read_reg(i2cdev, reg_ch);
+	//ret = ret & ~(CH_DET50_STS);
+    //
+	//if (ret & (VDLOSS_STS | SLOCK_STS | HVLOCK_STS))
+	//	return V4L2_IN_ST_NO_SIGNAL;
 
 	return 0;
 }
@@ -485,15 +485,14 @@ static int no_sync(struct v4l2_subdev *sd)
 	struct i2c_client *client = state->i2c_client;
 	int ret;
 
-	pr_info("%s\n", __func__);
-	isl79985_change_page(state, state->channel);
-	ret = read_reg(client, ISL79989_REG_DECODER_SAT1);
-	ret = ret & ~(DECODER_DET50 | DECODER_MONO | DECODER_FIELD | DECODER_SLOCK);
-	if (ret & (DECODER_VDLOSS | DECODER_HLOCK | DECODER_VLOCK))
-		return V4L2_IN_ST_NO_SYNC;
-
-	return 0;
-}
+	//isl79985_change_page(client, state->channel);
+	//ret = read_reg(client, ISL79989_REG_DECODER_SAT1);
+	//ret = ret & ~(DECODER_DET50 | DECODER_MONO | DECODER_FIELD | DECODER_SLOCK);
+	//if (ret & (DECODER_VDLOSS | DECODER_HLOCK | DECODER_VLOCK))
+	//	return V4L2_IN_ST_NO_SYNC;
+                             
+	return 0;                
+}                            
 
 static int isl79985_g_input_status(struct v4l2_subdev *sd, u32 *status)
 {
@@ -570,7 +569,7 @@ static int isl79985_s_std(struct v4l2_subdev *sd, v4l2_std_id norm)
 		state->norm = V4L2_STD_NTSC_M;
 	}
 
-	isl79985_change_page(state, state->channel);
+	isl79985_change_page(client, state->channel);
 	return write_reg(client, ISL79985_REG_STD_SEL, w_reg);
 }
 
@@ -582,7 +581,7 @@ static int isl79985_g_tvnorms(struct v4l2_subdev *sd, v4l2_std_id *norm)
 
 	pr_info("%s\n", __func__);
 
-	isl79985_change_page(state, state->channel);
+	isl79985_change_page(client, state->channel);
 	r_reg = read_reg(client, ISL79985_REG_STD_SEL);
 	r_reg = (r_reg >> 4) & STDNOW_MASK;
 
@@ -646,7 +645,6 @@ static const struct v4l2_subdev_video_ops isl79985_video_ops = {
 
 static const struct v4l2_subdev_core_ops isl79985_core_ops = {
 	.s_power = isl79985_s_power,
-	.log_status = isl79985_log_status,
 };
 
 static int isl79985_get_fmt(struct v4l2_subdev *sd,
@@ -683,7 +681,7 @@ static int isl79985_set_fmt(struct v4l2_subdev *sd,
 
 	fmt = &format->format;
 
-//	isl79985_change_page(state, state->channel);
+//	isl79985_change_page(client, state->channel);
 //	ret = read_reg(client, ISL79989_REG_DATA_CONVER);
 //
 //	switch (fmt->code) {
@@ -745,7 +743,7 @@ static int isl79985_hardware_init(struct isl79985 *state)
 
 #if 1
 	/* Page 0 */
-	isl79985_change_page(state, REG_PAGE_0);
+	isl79985_change_page(client, REG_PAGE_0);
 	write_reg(client, 0x03, 0x00);
 	write_reg(client, 0x07, 0x10);
 
@@ -773,7 +771,7 @@ static int isl79985_hardware_init(struct isl79985 *state)
 	/* write_reg(client, 0xFF, 0x00); */
 
 	/* Page 1-4 */
-	isl79985_change_page(state, REG_PAGE_1_4);
+	isl79985_change_page(client, REG_PAGE_1_4);
 	write_reg(client, 0x0A, 0x13);
 	write_reg(client, 0x09, 0xF0);
 	write_reg(client, 0x07, 0x02);
@@ -790,7 +788,7 @@ static int isl79985_hardware_init(struct isl79985 *state)
 
 
 	/* Page 5 */
-	isl79985_change_page(state, REG_PAGE_5);
+	isl79985_change_page(client, REG_PAGE_5);
 	/* write_reg(client, 0x01, 0x85); */
 	/* write_reg(client, 0x02, 0xA0); */
 	write_reg(client, 0x03, 0x08);
@@ -858,7 +856,7 @@ static int isl79985_hardware_init(struct isl79985 *state)
 
 
 	/* write_reg(client, 0xFF, 0x05); */
-	msleep(10);
+	msleep(5);
 #endif
 
 	return 0;
@@ -1018,7 +1016,6 @@ static int isl79985_probe(struct i2c_client *client,
 			    const struct i2c_device_id *id)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	struct isl79985 *state;
 	struct v4l2_subdev *sd;
 	int err;
 	struct v4l2_mbus_framefmt *fmt;
@@ -1030,14 +1027,15 @@ static int isl79985_probe(struct i2c_client *client,
 
 	state = devm_kzalloc(&client->dev, sizeof(*state), GFP_KERNEL);
 	if (state == NULL) {
-		pr_info("%s devm_kzalloc fail\n", __func__);
+		pr_err("%s devm_kzalloc fail\n", __func__);
 		return -ENOMEM;
 	}
 
 	state->i2c_client = client;
 	i2c_set_clientdata(client, state);
 	mutex_init(&state->mutex);
-	state->cur_page = -1;
+	state->cur_page = REG_PAGE_INIT;
+	pr_err("state->cur_page %d\n", state->cur_page);
 
 	err = isl79985_probe_of(state);
 	if (err) {
@@ -1047,7 +1045,7 @@ static int isl79985_probe(struct i2c_client *client,
 
 	isl79985_reset(state);
 
-	isl79985_change_page(state, REG_PAGE_0);
+	isl79985_change_page(client, REG_PAGE_0);
 	if (read_reg(client, ISL79985_REG_CHIP_ID) != CHIP_ID_79985) {
 		pr_err("not a isl79985 device\n");
 		return -ENODEV;
@@ -1062,8 +1060,8 @@ static int isl79985_probe(struct i2c_client *client,
 	fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 	fmt->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(fmt->colorspace);
 	fmt->width = 720;
-//	fmt->height = 240;
-	fmt->height = 480;
+	fmt->height = 240;
+//	fmt->height = 480;
 
 	fmt->field = V4L2_FIELD_INTERLACED;
 
@@ -1097,7 +1095,7 @@ static int isl79985_probe(struct i2c_client *client,
 //		pr_err("isl79985_init_controls fail\n");
 
 
-	if (device_create_file(sd->dev, &dev_attr_isl79985_channel) != 0) {
+	if (device_create_file(&client->dev, &dev_attr_isl79985_channel) != 0) {
 		dev_err(&client->dev, "sysfs ident entry creation failed\n");
 		goto err_hdl;
 	}
