@@ -120,6 +120,7 @@ struct isl79985_ctrls {
 
 
 struct isl79985 {
+	dev_t isl79985_devt;
 	struct v4l2_subdev sd;
 	struct i2c_client *i2c_client;
 	struct v4l2_dv_timings timings;
@@ -185,6 +186,59 @@ static int read_reg(struct i2c_client *client, u8 reg)
 	return ret;
 }
 
+
+static ssize_t isl79985_channel_show(struct device *dev,
+				      struct device_attribute *attr,
+				      char *buf)
+{
+	struct isl79985 *state = i2c_get_clientdata(to_i2c_client(dev));
+	u8 channel;
+
+	pr_info("slave_addr 0x%x\n", state->slave_addr);
+
+	channel = (0x0C & read_reg(state->i2c_client, 0x07)) >> 2;
+
+	if (channel == 0)
+		sprintf(buf, "%d\n", 0);
+	else
+		sprintf(buf, "%d\n", 1);
+
+	return 2; 
+}
+
+static ssize_t isl79985_channel_store(struct device *dev,
+				      struct device_attribute *attr,
+				      const char *buf, size_t len)
+{
+	struct isl79985 *state = i2c_get_clientdata(to_i2c_client(dev));
+	ssize_t status = 0;
+	long value;
+
+	pr_info("buf %s len %d\n", buf, len);
+
+	if (len > 2)
+		return -EINVAL;
+
+
+	status = kstrtol(buf, 0, &value);
+	if (status)
+		return -EINVAL;
+
+	if (value == 0)
+		write_reg(state->i2c_client, 0x07, 0x10);
+	else if (value == 1)
+		write_reg(state->i2c_client, 0x07, 0x04);
+	else
+		return -EINVAL;
+
+	return len;
+}
+
+/* sysfs attributes */
+static DEVICE_ATTR_RW(isl79985_channel);
+
+//static DEVICE_ATTR(priv_mem, 0444, et8ek8_priv_mem_read, NULL);
+
 static int isl79985_change_page(struct isl79985 *state, u8 page)
 {
 	struct i2c_client *client = state->i2c_client;
@@ -205,20 +259,6 @@ static int isl79985_log_status(struct v4l2_subdev *sd)
 {
 	return v4l2_ctrl_subdev_log_status(sd);
 }
-
-/*
- * These volatile controls are needed because all four channels share
- * these controls. So a change made to them through one channel would
- * require another channel to be updated.
- *
- * Normally this would have been done in a different way, but since the one
- * board that uses this driver sees this single chip as if it was on four
- * different i2c adapters (each adapter belonging to a separate instance of
- * the same USB driver) there is no reliable method that I have found to let
- * the instances know about each other.
- *
- * So implementing these global registers as volatile is the best we can do.
- */
 
 static int isl79985_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 {
@@ -410,14 +450,12 @@ static int isl79985_s_power(struct v4l2_subdev *sd, int on)
 		ret = write_reg(client, 0x34, 0x18);
 		ret = write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x00);
 		isl79985_change_page(state, REG_PAGE_0);
-		ret = write_reg(client, 0x0B, 0x40);
 	}
 	else {
 		isl79985_change_page(state, REG_PAGE_5);
 		ret = write_reg(client, 0x34, 0x06);
 		ret = write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x0F);
 		isl79985_change_page(state, REG_PAGE_0);
-		ret = write_reg(client, 0x0B, 0x00);
 	}
 	mutex_unlock(&state->mutex);
 	return ret;
@@ -711,12 +749,17 @@ static int isl79985_hardware_init(struct isl79985 *state)
 	write_reg(client, 0x03, 0x00);
 	write_reg(client, 0x07, 0x10);
 
-//	if (state->csi_lanes == 1)
-//		write_reg(client, 0x0B, 0x40);
-//	else
-//		write_reg(client, 0x0B, 0x41);
+	if (state->csi_lanes == 1)
+		write_reg(client, 0x0B, 0x40);
+	else
+		write_reg(client, 0x0B, 0x41);
 
-	write_reg(client, 0x07, 0x10);
+//channel 0
+//	write_reg(client, 0x07, 0x10);
+
+//channel 1
+	write_reg(client, 0x07, 0x04);
+
 	write_reg(client, 0x09, 0x43);
 	write_reg(client, 0x0A, 0x00);
 	write_reg(client, 0x0D, 0xC9);
@@ -735,13 +778,13 @@ static int isl79985_hardware_init(struct isl79985 *state)
 	write_reg(client, 0x09, 0xF0);
 	write_reg(client, 0x07, 0x02);
 
-//	write_reg(client, 0x1C, 0x00);
-//	write_reg(client, 0x2F, 0xE6);
-//	write_reg(client, 0x33, 0x85);
-//
-	write_reg(client, 0x1C, 0x0F);
-	write_reg(client, 0x2F, 0xE0);
-	write_reg(client, 0x33, 0x05);
+	write_reg(client, 0x1C, 0x00);
+	write_reg(client, 0x2F, 0xE6);
+	write_reg(client, 0x33, 0x85);
+
+//	write_reg(client, 0x1C, 0x0F);
+//	write_reg(client, 0x2F, 0xE0);
+//	write_reg(client, 0x33, 0x05);
 
 	/* write_reg(client, 0xFF, 0x01); */
 
@@ -1013,29 +1056,16 @@ static int isl79985_probe(struct i2c_client *client,
 	isl79985_hardware_init(state);
 
 	fmt = &state->fmt;
-//	fmt->code = MEDIA_BUS_FMT_YUYV8_2X8;
-//	fmt->code = MEDIA_BUS_FMT_YUYV8_1X16;
-
-	fmt->code = MEDIA_BUS_FMT_YUYV8_1X16;
-
-
-
-
+	fmt->code = MEDIA_BUS_FMT_YUYV8_2X8;
 	fmt->colorspace = V4L2_COLORSPACE_SRGB;
 	fmt->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(fmt->colorspace);
 	fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 	fmt->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(fmt->colorspace);
 	fmt->width = 720;
-//	fmt->height = 480;
-	fmt->height = 240;
-//	fmt->height = 288;
+//	fmt->height = 240;
+	fmt->height = 480;
 
-//	fmt->width = 640;
-//	fmt->height = 480;
-
-//	fmt->field = V4L2_FIELD_INTERLACED;
-	fmt->field = V4L2_FIELD_NONE;
-
+	fmt->field = V4L2_FIELD_INTERLACED;
 
 	state->mbus_fmt_code = MEDIA_BUS_FMT_UYVY8_2X8;
 	state->channel = ISL79985_CH1;
@@ -1061,9 +1091,16 @@ static int isl79985_probe(struct i2c_client *client,
 		goto err_hdl;
 	}
 
+
 //	err = isl79985_init_controls(state);
 //	if (err)
 //		pr_err("isl79985_init_controls fail\n");
+
+
+	if (device_create_file(sd->dev, &dev_attr_isl79985_channel) != 0) {
+		dev_err(&client->dev, "sysfs ident entry creation failed\n");
+		goto err_hdl;
+	}
 
 	return 0;
 

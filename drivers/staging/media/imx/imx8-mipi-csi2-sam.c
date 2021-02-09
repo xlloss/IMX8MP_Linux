@@ -220,8 +220,8 @@
 #define MIPI_CSIS_PKTDATA_EVEN		0x3000
 #define MIPI_CSIS_PKTDATA_SIZE		SZ_4K
 
-//#define DEFAULT_SCLK_CSIS_FREQ		166000000UL
-#define DEFAULT_SCLK_CSIS_FREQ		100000000UL
+#define DEFAULT_SCLK_CSIS_FREQ		166000000UL
+//#define DEFAULT_SCLK_CSIS_FREQ		100000000UL
 #define DEFAULT_SCLK_CSIS_FREQ_216		216000000UL
 
 /* display_mix_clk_en_csr */
@@ -1201,8 +1201,6 @@ static int mipi_csis_parse_dt(struct platform_device *pdev,
 
 	if (of_property_read_u32(node, "clock-frequency", &state->clk_frequency))
 		state->clk_frequency = DEFAULT_SCLK_CSIS_FREQ;
-
-	state->clk_frequency = DEFAULT_SCLK_CSIS_FREQ;
 
 	if (of_property_read_u32(node, "bus-width", &state->max_num_lanes))
 		return -EINVAL;

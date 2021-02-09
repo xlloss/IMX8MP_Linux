@@ -1020,6 +1020,9 @@ static int mxc_isi_config_parm(struct mxc_isi_cap_dev *isi_cap)
 	mxc_isi_channel_init(mxc_isi);
 	mxc_isi_channel_config(mxc_isi, &isi_cap->src_f, &isi_cap->dst_f);
 
+	mxc_isi->deinterlace = 1;
+	mxc_isi_channel_set_deinterlace(mxc_isi);
+	
 	return 0;
 }
 
