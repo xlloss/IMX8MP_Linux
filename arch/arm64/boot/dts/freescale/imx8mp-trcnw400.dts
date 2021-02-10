@@ -354,29 +354,21 @@
     };
 
 	/* ISL79985 */
-	isl79985: isl79985_mipi@3c {
+	isl79985: isl79985_mipi@44 {
 		compatible = "isl79985";
-		reg = <0x3c>;
+		reg = <0x44>;
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_isl79985_rst>;
-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
-		clock-names = "refclk";
-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
-		assigned-clock-rates = <24000000>;
 		csi_id = <0>;
-		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
-		mclk = <24000000>;
-		mclk_source = <0>;
-		mipi_csi;
+		reset-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 
 		port@0 {
 			isl79985_mipi_0_ep: endpoint {
 				remote-endpoint = <&mipi_csi0_ep_is79989>;
-				data-lanes = <1 2>;
-				clock-lanes = <0>;
+				data-lanes = <1>;
+				clock-lanes = <1>;
 			};
 		};
 
@@ -903,7 +895,7 @@
 		reg = <0>;
 		mipi_csi0_ep_is79989: endpoint {
 			remote-endpoint = <&isl79985_mipi_0_ep>;
-			data-lanes = <2>;
+			data-lanes = <1>;
 			csis-hs-settle = <13>;
 			csis-clk-settle = <2>;
 			csis-wclk;
@@ -929,7 +921,11 @@
 };
 
 &cameradev {
-	status = "disabled";
+	status = "okay";
+};
+
+&isp_0 {
+	status = "okay";
 };
 
 &isi_0 {
