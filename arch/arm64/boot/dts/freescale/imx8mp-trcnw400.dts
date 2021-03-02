@@ -373,6 +373,29 @@
 		};
 
 	};
+
+	hd3ss3220: tcpc@67 {
+		compatible = "ti,hd3ss3220";
+		reg = <0x67>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_int_3320>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <5 8>;
+
+		usb_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			power-role = "dual";
+			data-role = "dual";
+			try-power-role = "sink";
+
+			port {
+				typec_dr_sw: endpoint {
+					remote-endpoint = <&usb3_drd_sw>;
+				};
+			};
+		};
+	};
 };
 
 &i2c3 {
@@ -507,21 +530,19 @@
 };
 
 &usb_dwc3_0 {
-	/* dr_mode = "otg"; */
-	dr_mode = "peripheral";
+	dr_mode = "otg";
 	hnp-disable;
 	srp-disable;
 	adp-disable;
-	/* usb-role-switch; */
+	usb-role-switch;
 	status = "okay";
 
-	/*
 	port {
 		usb3_drd_sw: endpoint {
 			remote-endpoint = <&typec_dr_sw>;
 		};
 	};
-	*/
+
 };
 
 &usb3_phy1 {
@@ -623,6 +644,12 @@
 	pinctrl_isl79985_rst: isl79985_rst {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 RST */
+		>;
+	};
+
+	pinctrl_int_3320: int_3320 {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD1_DATA3__GPIO2_IO05	0x19 /* INT_3320 */
 		>;
 	};
 
