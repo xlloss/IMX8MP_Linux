@@ -25,6 +25,7 @@
 #include <linux/mutex.h>
 #include <linux/f75375s.h>
 #include <linux/slab.h>
+#include <linux/of_graph.h>
 
 /* Addresses to scan */
 static const unsigned short normal_i2c[] = { 0x2d, 0x2e, I2C_CLIENT_END };
@@ -109,6 +110,7 @@ struct f75375_data {
 	s16 temp11[2];
 	s8 temp_high[2];
 	s8 temp_max_hyst[2];
+	char force_pwm_mode;
 };
 
 static int f75375_detect(struct i2c_client *client,
@@ -116,6 +118,7 @@ static int f75375_detect(struct i2c_client *client,
 static int f75375_probe(struct i2c_client *client,
 			const struct i2c_device_id *id);
 static int f75375_remove(struct i2c_client *client);
+static void f75375_shutdown(struct i2c_client *client);
 
 static const struct i2c_device_id f75375_id[] = {
 	{ "f75373", f75373 },
@@ -135,6 +138,7 @@ static struct i2c_driver f75375_driver = {
 	.id_table = f75375_id,
 	.detect = f75375_detect,
 	.address_list = normal_i2c,
+	.shutdown = f75375_shutdown,
 };
 
 static inline int f75375_read8(struct i2c_client *client, u8 reg)
@@ -750,10 +754,20 @@ static const struct attribute_group f75375_group = {
 	.attrs = f75375_attributes,
 };
 
+static int f75375_probe_of(struct i2c_client *client)
+{
+	struct device *dev = &client->dev;
+	int ret;
+
+	ret = of_property_read_bool(dev->of_node, "force-pwm-mode-3");
+	return ret ? : -EINVAL;
+}
+
 static void f75375_init(struct i2c_client *client, struct f75375_data *data,
 		struct f75375s_platform_data *f75375s_pdata)
 {
 	int nr;
+	struct device *dev = &client->dev;
 
 	if (!f75375s_pdata) {
 		u8 conf, mode;
@@ -833,7 +847,7 @@ static int f75375_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, data);
 	mutex_init(&data->update_lock);
 	data->kind = id->driver_data;
-
+	data->force_pwm_mode = -1;
 	err = sysfs_create_group(&client->dev.kobj, &f75375_group);
 	if (err)
 		return err;
@@ -904,6 +918,28 @@ static int f75375_detect(struct i2c_client *client,
 	return 0;
 }
 
+static void f75375_shutdown(struct i2c_client *client)
+{
+	struct f75375_data *data = i2c_get_clientdata(client);
+	int nr, err;
+
+#ifdef CONFIG_OF
+	/* manual, speed */
+	data->force_pwm_mode = f75375_probe_of(client);
+	if (data->force_pwm_mode) {
+		for (nr = 0; nr < 2; nr++) {
+			data->pwm_mode[nr] = 1;
+			data->pwm_enable[nr] = 3;
+			err = set_pwm_enable_direct(client, nr, 3);
+			if (err)
+				dev_err(&client->dev, "set_pwm_enable_direct fail\n");
+
+			data->fan_target[nr] = rpm_to_reg(0);
+			f75375_write16(client, F75375_REG_FAN_EXP(nr), data->fan_target[nr]);
+		}
+	}
+#endif
+}
 module_i2c_driver(f75375_driver);
 
 MODULE_AUTHOR("Riku Voipio");
