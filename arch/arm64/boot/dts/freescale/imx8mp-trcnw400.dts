@@ -410,6 +410,7 @@
     };
 
     f75387: f75387@2d {
+		force-pwm-mode-3;
 		compatible = "f75387";
 		reg = <0x2d>;
     };
