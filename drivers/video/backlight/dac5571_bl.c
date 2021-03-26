@@ -134,7 +134,7 @@ static int dac5571_bl_update_status(struct backlight_device *bl)
 	if (bl->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK))
 		brightness = 0;
 
-	if (bl->props.power == TOPCON_BL_OFF)
+	if (bl->props.power == FB_BLANK_POWERDOWN)
 		ret = dac5571_bl_on_off(dac5571_dev, TOPCON_BL_OFF);
 	else
 		ret = dac5571_bl_on_off(dac5571_dev, TOPCON_BL_ON);
@@ -224,9 +224,9 @@ static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 		return ret;
 	}
 
+	dac5571_bl_on_off(dac5571_dev, TOPCON_BL_OFF);
 	dac5571_dev->bl->props.state &= ~(BL_CORE_SUSPENDED | BL_CORE_FBBLANK);
-	dac5571_dev->bl->props.power = TOPCON_BL_ON;
-
+	dac5571_dev->bl->props.power = FB_BLANK_POWERDOWN;
 	backlight_update_status(dac5571_dev->bl);
 	return 0;
 }
