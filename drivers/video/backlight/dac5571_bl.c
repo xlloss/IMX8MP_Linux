@@ -131,14 +131,22 @@ static int dac5571_bl_update_status(struct backlight_device *bl)
 	int brightness = bl->props.brightness;
 	int ret;
 
-	if (bl->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK))
+	if (bl->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK)) {
 		brightness = 0;
+		goto SET_DAC;
+	}
 
-	if (bl->props.power == FB_BLANK_POWERDOWN)
+	if (bl->props.power == FB_BLANK_POWERDOWN) {
 		ret = dac5571_bl_on_off(dac5571_dev, TOPCON_BL_OFF);
-	else
-		ret = dac5571_bl_on_off(dac5571_dev, TOPCON_BL_ON);
+		goto SET_DAC;
+	}
 
+	if (bl->props.power == FB_BLANK_UNBLANK)
+		ret = dac5571_bl_on_off(dac5571_dev, TOPCON_BL_ON);
+	else
+		ret = dac5571_bl_on_off(dac5571_dev, TOPCON_BL_OFF);
+
+SET_DAC:
 	dac5571_dev->current_brightness = brightness;
 	mcp4725_set_value(dac5571_dev, brightness);
 
