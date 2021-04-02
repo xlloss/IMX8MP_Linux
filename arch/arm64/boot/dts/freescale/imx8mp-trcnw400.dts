@@ -112,9 +112,8 @@
             regulator-name = "lvds_panel_pwr";
             regulator-type = "voltage";
             gpios = <&gpio3 23 GPIO_ACTIVE_HIGH>;
-            gpios-states = <1>;
+            gpios-states = <0>;
             states = <3300000 0x1 0000001 0x0>;
-            enable-at-boot;
             status = "okay";
     };
 
@@ -464,6 +463,7 @@
 &ldb {
 	status = "okay";
 
+	startup-delay-us = <20>;
 	lvds-channel@0 {
 		fsl,data-mapping = "jeida";
 		fsl,data-width = <24>;

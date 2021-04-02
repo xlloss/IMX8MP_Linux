@@ -23,6 +23,9 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_panel.h>
 
+#define BL_VOLT_MAX 3300000
+#define BL_VOLT_MIN 0000001
+
 struct panel_lvds {
 	struct drm_panel panel;
 	struct device *dev;
@@ -85,6 +88,7 @@ static int panel_lvds_prepare(struct drm_panel *panel)
 				err);
 			return err;
 		}
+		regulator_set_voltage(lvds->supply, BL_VOLT_MAX, BL_VOLT_MAX);
 	}
 
 	if (lvds->enable_gpio)
