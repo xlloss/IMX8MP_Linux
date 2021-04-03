@@ -15,6 +15,7 @@
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
+#include <linux/delay.h>
 
 #include <video/display_timing.h>
 #include <video/of_display_timing.h>
@@ -42,6 +43,7 @@ struct panel_lvds {
 
 	struct gpio_desc *enable_gpio;
 	struct gpio_desc *reset_gpio;
+	u32 bl_delay;
 };
 
 static inline struct panel_lvds *to_panel_lvds(struct drm_panel *panel)
@@ -104,6 +106,7 @@ static int panel_lvds_enable(struct drm_panel *panel)
 	if (lvds->backlight) {
 		lvds->backlight->props.state &= ~BL_CORE_FBBLANK;
 		lvds->backlight->props.power = FB_BLANK_UNBLANK;
+		msleep(lvds->bl_delay);
 		backlight_update_status(lvds->backlight);
 	}
 
@@ -194,6 +197,10 @@ static int panel_lvds_parse_dt(struct panel_lvds *lvds)
 	}
 
 	lvds->data_mirror = of_property_read_bool(np, "data-mirror");
+
+	ret = of_property_read_u32(np, "backlight-delay", &lvds->bl_delay);
+	if (ret < 0)
+		lvds->bl_delay = 0;
 
 	return 0;
 }

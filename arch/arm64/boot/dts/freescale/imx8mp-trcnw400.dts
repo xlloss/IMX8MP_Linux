@@ -125,6 +125,7 @@
 		data-mapping = "jeida-24";
 		backlight = <&dac5571_backlight>;
 		power-supply = <&reg_lvds_panel>;
+		backlight-delay = <5>;
 		panel-timing {
 			/* 800x600 @60Hz */
 			clock-frequency = <40000000>;
