@@ -21,7 +21,7 @@
 #include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/stmmac.h>
-
+#include <linux/delay.h>
 #include <linux/if_ether.h>
 #include "stmmac_platform.h"
 
@@ -306,6 +306,7 @@ static int imx_dwmac_probe(struct platform_device *pdev)
 	struct stmmac_resources stmmac_res;
 	struct imx_priv_data *dwmac;
 	const struct imx_dwmac_ops *data;
+	struct gpio_desc *phy_reset_gpio;
 	int ret;
 
 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
@@ -349,6 +350,22 @@ static int imx_dwmac_probe(struct platform_device *pdev)
 	plat_dat->fix_mac_speed = imx_dwmac_fix_speed;
 	plat_dat->bsp_priv = dwmac;
 	dwmac->plat_dat = plat_dat;
+
+	phy_reset_gpio = devm_gpiod_get_optional(&pdev->dev, "phy-reset",
+						     GPIOD_OUT_HIGH);
+	if (IS_ERR(phy_reset_gpio)) {
+		pr_warn("can't find phy-reset gpio\n");
+		goto err_parse_dt;
+	}
+
+	gpiod_set_value_cansleep(phy_reset_gpio, 1);
+	usleep_range(1000, 2000);
+
+	gpiod_set_value_cansleep(phy_reset_gpio, 0);
+	usleep_range(1000, 2000);
+
+	gpiod_set_value_cansleep(phy_reset_gpio, 1);
+	usleep_range(20000, 25000);
 
 	/* enable runtime pm to turn off power domain when netif down */
 	pm_runtime_enable(&pdev->dev);
