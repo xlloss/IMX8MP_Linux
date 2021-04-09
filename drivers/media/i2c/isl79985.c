@@ -492,6 +492,11 @@ static void isl79985_reset(struct isl79985 *state)
 	usleep_range(20000, 25000);
 }
 
+static int _isl79985_s_power(struct v4l2_subdev *sd, int on)
+{
+	return 0;
+}
+
 static int isl79985_s_power(struct v4l2_subdev *sd, int on)
 {
 	struct isl79985 *state = sd_to_state(sd);
@@ -502,8 +507,7 @@ static int isl79985_s_power(struct v4l2_subdev *sd, int on)
 		isl79985_change_page(client, REG_PAGE_5);
 		write_reg(client, 0x34, 0x18);
 		write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x00);
-	}
-	else {
+	} else {
 		isl79985_change_page(client, REG_PAGE_5);
 		write_reg(client, 0x34, 0x06);
 		write_reg(client, ISL79985_REG_MIPI_ANALOG, 0x0F);
@@ -579,6 +583,12 @@ static int isl79985_g_mbus_config(struct v4l2_subdev *sd,
 
 static int isl79985_s_stream(struct v4l2_subdev *sd, int enable)
 {
+	struct isl79985 *state = sd_to_state(sd);
+	struct i2c_client *client = state->i2c_client;
+
+	isl79985_s_power(sd, 0);
+	msleep(5);
+	isl79985_s_power(sd, 1);
 	return 0;
 }
 
@@ -683,7 +693,7 @@ static const struct v4l2_subdev_video_ops isl79985_video_ops = {
 };
 
 static const struct v4l2_subdev_core_ops isl79985_core_ops = {
-	.s_power = isl79985_s_power,
+	.s_power = _isl79985_s_power,
 };
 
 static int isl79985_get_fmt(struct v4l2_subdev *sd,
