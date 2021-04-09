@@ -353,13 +353,13 @@
 		#gpio-cells = <2>;
     };
 
-	/* ISL79985 */
-	isl79985: isl79985_mipi@44 {
+	/* ISL79985 A */
+	isl79985a: isl79985_mipi@44 {
 		compatible = "isl79985";
 		reg = <0x44>;
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_isl79985_rst>;
+		pinctrl-0 = <&pinctrl_isl79985a_rst>;
 		csi_id = <0>;
 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 		status = "okay";
@@ -426,6 +426,34 @@
 	};
 };
 
+&i2c4 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c4>;
+	status = "okay";
+
+
+	/* ISL79985 B */
+	isl79985b: isl79985_mipi@44 {
+		compatible = "isl79985";
+		reg = <0x44>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_isl79985b_rst>;
+		csi_id = <0>;
+		reset-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+
+		port@0 {
+			isl79985_mipi_1_ep: endpoint {
+				remote-endpoint = <&mipi_csi1_ep_is79989>;
+				data-lanes = <1>;
+				clock-lanes = <1>;
+			};
+		};
+
+	};
+};
 
 &flexcan1 {
 	pinctrl-names = "default";
@@ -597,7 +625,6 @@
 	pinctrl_hog: hoggrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO00__GPIO1_IO00		0x59	/* USB_OTG_PWR_EN 	*/
-			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01		0x116 	/* TP54		 	*/
 			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05		0x19 	/* CAM1 RST 		*/
 			MX8MP_IOMUXC_GPIO1_IO11__GPIO1_IO11		0x116 	/* PCIE_nPRSNT_3V3 	*/
 			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12		0x19 	/* TCA_INT-		*/
@@ -643,9 +670,21 @@
 		>;
 	};
 
-	pinctrl_isl79985_rst: isl79985_rst {
+	pinctrl_lvds_pwr_en: lvds_pwr_en {
 		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 RST */
+			MX8MP_IOMUXC_SAI5_RXD2__GPIO3_IO23	0x16 /* LVDS Power Enable */
+		>;
+	};
+
+	pinctrl_isl79985a_rst: isl79985a_rst {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 1st RST */
+		>;
+	};
+
+	pinctrl_isl79985b_rst: isl79985b_rst {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x19 /* ISL79985 2nd RST */
 		>;
 	};
 
@@ -749,6 +788,12 @@
 		>;
 	};
 
+	pinctrl_i2c4: i2c4grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C4_SDA__I2C4_SDA			0x400001c3
+		>;
+	};
 
 	pinctrl_pcie: pciegrp {
 		fsl,pins = <
@@ -935,13 +980,13 @@
 &mipi_csi_1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	status = "disabled";
+	status = "okay";
 
 	port@1 {
 		reg = <1>;
-		mipi_csi1_ep: endpoint {
-			/* remote-endpoint = <&ov5640_mipi_1_ep>; */
-			data-lanes = <2>;
+		mipi_csi1_ep_is79989: endpoint {
+			remote-endpoint = <&isl79985_mipi_1_ep>;
+			data-lanes = <1>;
 			csis-hs-settle = <13>;
 			csis-clk-settle = <2>;
 			csis-wclk;
@@ -954,6 +999,10 @@
 };
 
 &isp_0 {
+	status = "okay";
+};
+
+&isp_1 {
 	status = "okay";
 };
 
@@ -970,10 +1019,10 @@
 };
 
 &isi_1 {
-	status = "disabled";
+	status = "okay";
 
 	cap_device {
-		status = "disabled";
+		status = "okay";
 	};
 };
 
