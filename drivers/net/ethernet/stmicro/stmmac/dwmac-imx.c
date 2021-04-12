@@ -283,6 +283,11 @@ imx_dwmac_parse_dt(struct imx_priv_data *dwmac, struct device *dev)
 		}
 	}
 
+	if (of_get_property(np, "stmmc-disable-dma-swrst", NULL))
+		dwmac->plat_dat->disable_dma_swrst = 1;
+	else
+		dwmac->plat_dat->disable_dma_swrst = 0;
+
 	return err;
 }
 
@@ -331,6 +336,7 @@ static int imx_dwmac_probe(struct platform_device *pdev)
 	dwmac->ops = data;
 	dwmac->dev = &pdev->dev;
 
+	dwmac->plat_dat = plat_dat;
 	ret = imx_dwmac_parse_dt(dwmac, &pdev->dev);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to parse OF data\n");
@@ -344,11 +350,11 @@ static int imx_dwmac_probe(struct platform_device *pdev)
 		goto err_dma_mask;
 	}
 
-	plat_dat->init = imx_dwmac_init;
-	plat_dat->exit = imx_dwmac_exit;
-	plat_dat->fix_mac_speed = imx_dwmac_fix_speed;
-	plat_dat->bsp_priv = dwmac;
-	dwmac->plat_dat = plat_dat;
+	dwmac->plat_dat->init = imx_dwmac_init;
+	dwmac->plat_dat->exit = imx_dwmac_exit;
+	dwmac->plat_dat->fix_mac_speed = imx_dwmac_fix_speed;
+	dwmac->plat_dat->bsp_priv = dwmac;
+
 
 	/* enable runtime pm to turn off power domain when netif down */
 	pm_runtime_enable(&pdev->dev);
