@@ -74,6 +74,8 @@ enum chips { f75373, f75375, f75387 };
 #define FAN_CTRL_MODE(nr)		(4 + ((nr) * 2))
 #define F75387_FAN_DUTY_MODE(nr)	(2 + ((nr) * 4))
 #define F75387_FAN_MANU_MODE(nr)	((nr) * 4)
+#define FAN_START_RPM 7000
+#define FAN_STOP_RPM 1
 
 /*
  * Data structures and manipulation thereof
@@ -763,11 +765,36 @@ static int f75375_probe_of(struct i2c_client *client)
 	return ret ? : -EINVAL;
 }
 
+int manu_adjust_rpm(struct i2c_client *client, int rpm)
+{
+	struct f75375_data *data = i2c_get_clientdata(client);
+	int err;
+	u8 nr;
+
+	/* manual, speed */
+	data->force_pwm_mode = f75375_probe_of(client);
+	if (data->force_pwm_mode) {
+		for (nr = 0; nr < 2; nr++) {
+			data->pwm_mode[nr] = 1;
+			data->pwm_enable[nr] = 3;
+			err = set_pwm_enable_direct(client, nr, 3);
+			if (err) {
+				dev_err(&client->dev, "set_pwm_enable_direct fail\n");
+				return -EINVAL;
+			}
+
+			data->fan_target[nr] = rpm_to_reg(rpm);
+			f75375_write16(client, F75375_REG_FAN_EXP(nr), data->fan_target[nr]);
+		}
+	}
+
+	return 0;
+}
+
 static void f75375_init(struct i2c_client *client, struct f75375_data *data,
 		struct f75375s_platform_data *f75375s_pdata)
 {
-	int nr;
-	struct device *dev = &client->dev;
+	int nr, err;
 
 	if (!f75375s_pdata) {
 		u8 conf, mode;
@@ -813,6 +840,17 @@ static void f75375_init(struct i2c_client *client, struct f75375_data *data,
 				}
 			}
 		}
+
+#ifdef CONFIG_OF
+	/* manual, speed */
+	data->force_pwm_mode = f75375_probe_of(client);
+	if (data->force_pwm_mode) {
+		err = manu_adjust_rpm(client, FAN_START_RPM);
+		if (err)
+			dev_err(&client->dev, "manu_adjust_rpm fail\n");
+	}
+#endif
+
 		return;
 	}
 
@@ -921,22 +959,15 @@ static int f75375_detect(struct i2c_client *client,
 static void f75375_shutdown(struct i2c_client *client)
 {
 	struct f75375_data *data = i2c_get_clientdata(client);
-	int nr, err;
+	int err;
 
 #ifdef CONFIG_OF
 	/* manual, speed */
 	data->force_pwm_mode = f75375_probe_of(client);
 	if (data->force_pwm_mode) {
-		for (nr = 0; nr < 2; nr++) {
-			data->pwm_mode[nr] = 1;
-			data->pwm_enable[nr] = 3;
-			err = set_pwm_enable_direct(client, nr, 3);
-			if (err)
-				dev_err(&client->dev, "set_pwm_enable_direct fail\n");
-
-			data->fan_target[nr] = rpm_to_reg(0);
-			f75375_write16(client, F75375_REG_FAN_EXP(nr), data->fan_target[nr]);
-		}
+		err = manu_adjust_rpm(client, FAN_STOP_RPM);
+		if (err)
+			dev_err(&client->dev, "manu_adjust_rpm fail\n");
 	}
 #endif
 }
