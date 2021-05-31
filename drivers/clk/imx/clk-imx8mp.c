@@ -13,6 +13,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <linux/debugfs.h>
 #include <soc/imx/soc.h>
 
 #include "clk.h"
@@ -498,6 +499,480 @@ static const char *imx8mp_dram_core_sels[] = {"dram_pll_out", "dram_alt_root", }
 static struct clk *clks[IMX8MP_CLK_END];
 static struct clk_onecell_data clk_data;
 
+#define VIDEO_PLL_SSCG 31
+#define SSCG_EN 1
+#define VIDEO_PLL_MFREQ_CTL 12
+#define VIDEO_PLL_MRAT_CTL 4
+#define VIDEO_PLL_SEL_PF 0
+#define SEL_PF_DOWN_SP 0
+#define SEL_PF_UP_SP 1
+#define SEL_PF_CEN_SP 2
+
+struct videppll_sscm {
+	struct device *dev;
+	struct device_node *np;
+	void __iomem *base;
+	unsigned int mdiv, pdiv;
+	unsigned int mfr, mrr, mr, mf, pf;
+	unsigned int sccm_enable;
+};
+
+
+static int sscm_pf_dfs_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
+static ssize_t sscm_pf_dfs_read(struct file *file,
+					char __user *usr_buf,
+					size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	int cnt;
+	int pf;
+	char buf[10];
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	if (*ppos != 0)
+		return 0;
+
+	pf = _videppll_sscm->pf;
+	cnt = snprintf(buf, sizeof(buf), "%d\n", pf);
+
+	return simple_read_from_buffer(usr_buf, size, ppos, buf, cnt);
+}
+
+static ssize_t sscm_pf_dfs_write(struct file *file,
+					 const char __user *usr_buf,
+					 size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	int ret;
+	unsigned int pf;
+
+	ret = kstrtoint_from_user(usr_buf, size, 0, &pf);
+	if (ret)
+		return ret;
+
+	if (pf < 0 || pf > 1)
+		return -EINVAL;
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	_videppll_sscm->pf = pf;
+
+	return size;
+}
+
+static const struct file_operations debugfs_sscm_pf_fops = {
+	.owner = THIS_MODULE,
+	.open = sscm_pf_dfs_open,
+	.read = sscm_pf_dfs_read,
+	.write = sscm_pf_dfs_write,
+	.llseek  = seq_lseek,
+};
+
+
+static int sscm_enable_dfs_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
+static ssize_t sscm_enable_dfs_read(struct file *file,
+					char __user *usr_buf,
+					size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	int cnt;
+	int enable;
+	char buf[10];
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	if (*ppos != 0)
+		return 0;
+
+	enable = _videppll_sscm->sccm_enable;
+	cnt = snprintf(buf, sizeof(buf), "%d\n", enable);
+
+	return simple_read_from_buffer(usr_buf, size, ppos, buf, cnt);
+}
+
+static ssize_t sscm_enable_dfs_write(struct file *file,
+					 const char __user *usr_buf,
+					 size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	int enable, ret;
+	unsigned int val, mfr, mrr, pf;
+
+	ret = kstrtoint_from_user(usr_buf, size, 0, &enable);
+	if (ret)
+		return ret;
+
+	if (enable < 0)
+		return -EINVAL;
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+
+	mfr = _videppll_sscm->mfr;
+	mrr = _videppll_sscm->mrr;
+	pf = _videppll_sscm->pf;
+
+	val = (mfr << VIDEO_PLL_MFREQ_CTL | \
+			mrr << VIDEO_PLL_MRAT_CTL | \
+			pf << VIDEO_PLL_SEL_PF);
+
+	writel(val, _videppll_sscm->base);
+
+	if (enable) {
+		val |= SSCG_EN << VIDEO_PLL_SSCG;
+		_videppll_sscm->sccm_enable = 1;
+	} else {
+		val &= ~SSCG_EN << VIDEO_PLL_SSCG;
+		_videppll_sscm->sccm_enable = 0;
+	}
+
+	writel(val, _videppll_sscm->base);
+
+	return size;
+}
+
+static const struct file_operations debugfs_sscm_en_fops = {
+	.owner = THIS_MODULE,
+	.open = sscm_enable_dfs_open,
+	.read = sscm_enable_dfs_read,
+	.write = sscm_enable_dfs_write,
+	.llseek  = seq_lseek,
+};
+
+static int sscm_mf_dfs_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
+static ssize_t sscm_mf_dfs_read(struct file *file,
+					char __user *usr_buf,
+					size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	int cnt;
+	unsigned int mf;
+	char buf[10];
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	if (*ppos != 0)
+		return 0;
+
+	mf = _videppll_sscm->mf;
+	cnt = snprintf(buf, sizeof(buf), "%d\n", mf);
+
+	return simple_read_from_buffer(usr_buf, size, ppos, buf, cnt);
+}
+
+static ssize_t sscm_mf_dfs_write(struct file *file,
+					 const char __user *usr_buf,
+					 size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	unsigned int sccm_enable, mf, mfr, pdiv;
+	int ret;
+	long tmp;
+
+	ret = kstrtoint_from_user(usr_buf, size, 0, &mf);
+	if (ret)
+		return ret;
+
+	if (!mf)
+		return -EINVAL;
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	sccm_enable = _videppll_sscm->sccm_enable;
+	if (sccm_enable) {
+		dev_warn(_videppll_sscm->dev, "please disable sccm\n");
+		return size;
+	}
+
+	pdiv = _videppll_sscm->pdiv;
+	pr_info("SLASH pdiv %d\n", pdiv);
+	tmp = (mf << 5) * pdiv;
+	mfr = DIV_ROUND_CLOSEST(24000000, tmp);
+	if (mfr > 255 || mfr == 0) {
+		dev_warn(_videppll_sscm->dev,
+			"mfr overflow %d, change to 255\n", mfr);
+		mfr = 255;
+	}
+
+	_videppll_sscm->mfr = mfr;
+	_videppll_sscm->mf = mf;
+
+	return size;
+}
+
+static const struct file_operations debugfs_sscm_mf_fops = {
+	.owner = THIS_MODULE,
+	.open = sscm_mf_dfs_open,
+	.read = sscm_mf_dfs_read,
+	.write = sscm_mf_dfs_write,
+	.llseek  = seq_lseek,
+};
+
+static int sscm_mr_dfs_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
+static ssize_t sscm_mr_dfs_read(struct file *file,
+					char __user *usr_buf,
+					size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	int cnt;
+	unsigned int mr;
+	char buf[10];
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	if (*ppos != 0)
+		return 0;
+	mr = _videppll_sscm->mr;
+	cnt = snprintf(buf, sizeof(buf), "%d\n", mr);
+
+	return simple_read_from_buffer(usr_buf, size, ppos, buf, cnt);
+}
+
+static ssize_t sscm_mr_dfs_write(struct file *file,
+					 const char __user *usr_buf,
+					 size_t size, loff_t *ppos)
+{
+	struct videppll_sscm *_videppll_sscm;
+	unsigned int mr, mrr, mdiv, ret;
+	unsigned int sccm_enable;
+	long tmp;
+
+	ret = kstrtoint_from_user(usr_buf, size, 0, &mr);
+	if (ret)
+		return ret;
+
+	if (!mr)
+		return -EINVAL;
+
+	_videppll_sscm = file->private_data;
+	if (!_videppll_sscm) {
+		dev_err(_videppll_sscm->dev, "_videppll_sscm null\n");
+		return 0;
+	}
+
+	sccm_enable = _videppll_sscm->sccm_enable;
+	if (sccm_enable) {
+		dev_warn(_videppll_sscm->dev, "please disable sccm\n");
+		return size;
+	}
+
+	mdiv = _videppll_sscm->mdiv;
+	tmp = mr * (mdiv << 6);
+	mrr = DIV_ROUND_CLOSEST(tmp, _videppll_sscm->mfr);
+
+	/* exaggeration of 100 times for MR, so it have to return orginal */
+	mrr = DIV_ROUND_CLOSEST(mrr, 10000);
+	if (mrr > 63) {
+		dev_warn(_videppll_sscm->dev,
+			"mrr overflow %d, change to 63\n", mrr);
+		mrr = 63;
+	}
+
+	_videppll_sscm->mr = mr;
+	_videppll_sscm->mrr = mrr;
+
+	return size;
+}
+
+static const struct file_operations debugfs_sscm_mr_fops = {
+	.owner = THIS_MODULE,
+	.open = sscm_mr_dfs_open,
+	.read = sscm_mr_dfs_read,
+	.write = sscm_mr_dfs_write,
+	.llseek  = seq_lseek,
+};
+
+static int enable_sscm(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct device_node *np = dev->of_node;
+	struct clk *video_pll_clk;
+	struct dentry *sscm_dbg_dir;
+	void __iomem *base;
+	unsigned int val, i;
+	unsigned int mdiv, pdiv;
+	unsigned int mfr, mrr, mr, mf, pf;
+	long tmp;
+	struct videppll_sscm *_videppll_sscm;
+
+	dev_info(&pdev->dev, "enable_sscm\n");
+	np = of_find_compatible_node(NULL, NULL, "fsl,imx8mp-videopll-sscm");
+	if (!np) {
+		dev_info(&pdev->dev, "enable_sscm disable\n");
+		return -EINVAL;
+	}
+
+	_videppll_sscm = kmalloc(sizeof(struct videppll_sscm), GFP_KERNEL);
+	if (!_videppll_sscm) {
+		dev_err(&pdev->dev, "unable to create _videppll_sscm\n");
+		return -ENOMEM;
+	}
+
+	_videppll_sscm->sccm_enable = 0;
+
+	base = of_iomap(np, 0);
+	if (WARN_ON(!base))
+		return -ENOMEM;
+
+	_videppll_sscm->base = base;
+
+	video_pll_clk = of_clk_get_by_name(np, "video_pll1");
+	if (!video_pll_clk) {
+		dev_err(&pdev->dev, "unable to get video_pll_clks\n");
+		return -ENOMEM;
+	}
+
+	val = clk_get_rate(video_pll_clk);
+	for (i = 0; i < imx8mp_video_pll.rate_count; i++)
+		if (val == imx8mp_video_pll.rate_table[i].rate)
+			break;
+
+	if (of_property_read_u32(np, "mf", &mf)) {
+		dev_err(&pdev->dev, "unable to get mfr val\n");
+		return -EINVAL;
+	}
+	_videppll_sscm->mf = mf;
+
+	if (of_property_read_u32(np, "mr", &mr)) {
+		dev_err(&pdev->dev, "unable to get mfr val\n");
+		return -EINVAL;
+	}
+	_videppll_sscm->mr = mr;
+
+	if (of_property_read_u32(np, "pf", &pf)) {
+		dev_err(&pdev->dev, "unable to get pf val\n");
+		return -EINVAL;
+	}
+	_videppll_sscm->pf = pf;
+
+	mdiv = imx8mp_video_pll.rate_table[i].mdiv;
+	pdiv = imx8mp_video_pll.rate_table[i].pdiv;
+	_videppll_sscm->mdiv = mdiv;
+	_videppll_sscm->pdiv = pdiv;
+
+	/*
+	 * Value of modulation frequency control Modulation Frequency,
+	 * MF is determined by the following equation:
+	 *
+	 * MF = F FIN /p/mfr/(2^5) Hz
+	 *
+	 * F FIN is the PLL input clock frequency,
+	 *
+	 * mfr is the decimal value for PLL_MFREQ_CTL[7:0], and
+	 * p is the decimal value for PLL_PRE_DIV.
+	 *
+	 */
+	tmp = (mf << 5) * pdiv;
+	mfr = DIV_ROUND_CLOSEST(24000000, tmp);
+	if (mfr > 255) {
+		dev_warn(&pdev->dev, "mfr overflow %d, change to 255\n", mfr);
+		mfr = 255;
+	}
+
+	/* Value of modulation rate control
+	 * Modulation rate (pk-pk), MR, is determined by the following :
+	 *
+	 * MR = mfr x mrr /m /(2^6) x 100 [%]
+	 *
+	 * mfr is the decimal value of PLL_MFREQ_CTL,
+	 * mrr is the decimal value for PLL_MRAT_CTL[5:0]
+	 * and m is the decimal of PLL_MAIN_DIV.
+	 */
+	tmp = mr * (mdiv << 6);
+	mrr = DIV_ROUND_CLOSEST(tmp, mfr);
+
+	/* exaggeration of 100 times for MR, so it have to return orginal */
+	mrr = DIV_ROUND_CLOSEST(mrr, 10000);
+	if (mrr > 63) {
+		dev_warn(&pdev->dev, "mrr overflow %d, change to 63\n", mrr);
+		mrr = 63;
+	}
+
+	dev_info(&pdev->dev, "mfr %d, mrr %d\n", mfr, mrr);
+
+	val = (mfr << VIDEO_PLL_MFREQ_CTL | \
+			mrr << VIDEO_PLL_MRAT_CTL | \
+			pf << VIDEO_PLL_SEL_PF);
+
+	_videppll_sscm->mfr = mfr;
+	_videppll_sscm->mrr = mrr;
+
+	writel(val, base);
+
+	val |= SSCG_EN << VIDEO_PLL_SSCG;
+	writel(val, base);
+
+	_videppll_sscm->dev = &pdev->dev;
+	_videppll_sscm->sccm_enable = 1;
+
+	sscm_dbg_dir = debugfs_create_dir("sscm_debugfs", NULL);
+	debugfs_create_file("module-frequency", S_IWUSR | S_IRUSR,
+			    sscm_dbg_dir, _videppll_sscm, &debugfs_sscm_mf_fops);
+
+	debugfs_create_file("module-rate", S_IWUSR | S_IRUSR,
+			    sscm_dbg_dir, _videppll_sscm, &debugfs_sscm_mr_fops);
+
+
+	debugfs_create_file("enable", S_IWUSR | S_IRUSR,
+			    sscm_dbg_dir, _videppll_sscm, &debugfs_sscm_en_fops);
+
+	debugfs_create_file("profile_sel", S_IWUSR | S_IRUSR,
+			    sscm_dbg_dir, _videppll_sscm, &debugfs_sscm_pf_fops);
+
+	dev_info(&pdev->dev, "MF=%d, MR=%d\n", mf, mr);
+	dev_info(&pdev->dev, "MFR=%d MRR=%d\n", mfr, mrr);
+	return 0;
+}
+
 static int __init imx_clk_init_on(struct device_node *np,
 				  struct clk * const clks[])
 {
@@ -866,6 +1341,10 @@ static int imx8mp_clocks_probe(struct platform_device *pdev)
 	clk_prepare_enable(clks[IMX8MP_CLK_ENET_QOS_ROOT]);
 
 	imx_register_uart_clocks();
+
+	ret = enable_sscm(pdev);
+	if (ret)
+		pr_err("enable_sscm fail\n");
 
 	pr_info("i.MX8MP clock driver probe done\n");
 

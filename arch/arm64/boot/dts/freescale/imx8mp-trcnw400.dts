@@ -143,6 +143,21 @@
 			linux,default-trigger = "gpio";
 		};
 	};
+
+	videopllsscm: videopll_sscm@30360034 {
+		compatible = "fsl,imx8mp-videopll-sscm";
+		reg = <0 0x30360034 0 0x1000>;
+		clocks = <&clk IMX8MP_VIDEO_PLL1>;
+		clock-names = "video_pll1";
+
+		/*
+		  MF: 125000Hz
+		  MR: 3.1%
+		*/
+		mf = <125000>;
+		mr = <310>;
+		pf = <2>;
+	};
 };
 
 &clk {
