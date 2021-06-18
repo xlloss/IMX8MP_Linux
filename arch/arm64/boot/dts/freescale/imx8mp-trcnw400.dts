@@ -446,7 +446,7 @@
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c4>;
-	status = "okay";
+	status = "disabled";
 
 
 	/* ISL79985 B */
@@ -514,8 +514,7 @@
 &pcie{
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcie>;
-	disable-gpio = <&gpio2 6 GPIO_ACTIVE_LOW>;
-	reset-gpio = <&gpio2 7 GPIO_ACTIVE_LOW>;
+//	reset-gpio = <&gpio2 7 GPIO_ACTIVE_LOW>;
 	clkreq-gpio = <&gpio5 20 GPIO_ACTIVE_LOW>;
 	ext_osc = <1>;
 	clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
@@ -642,7 +641,6 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO00__GPIO1_IO00		0x59	/* USB_OTG_PWR_EN 	*/
 			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05		0x19 	/* CAM1 RST 		*/
-			MX8MP_IOMUXC_GPIO1_IO11__GPIO1_IO11		0x116 	/* PCIE_nPRSNT_3V3 	*/
 			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12		0x19 	/* TCA_INT-		*/
 			MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13		0x19 	/* USB_OC12- 		*/
 			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14		0x19 	/* USB_OC34- 		*/
@@ -813,9 +811,10 @@
 
 	pinctrl_pcie: pciegrp {
 		fsl,pins = <
-			MX8MP_IOMUXC_I2C4_SCL__HSIOMIX_PCIE_CLKREQ_B	0x61 /* open drain, pull up */
+			MX8MP_IOMUXC_GPIO1_IO11__GPIO1_IO11		0x41
+			MX8MP_IOMUXC_I2C4_SCL__GPIO5_IO20
 			MX8MP_IOMUXC_SD1_DATA4__GPIO2_IO06		0x41
-			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07		0x41
+			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07		0x41 //RST
 		>;
 	};
 

@@ -1250,7 +1250,7 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 			dev_err(dev, "Failed to power on PHY!\n");
 		reset_control_assert(imx6_pcie->pciephy_perst);
 		reset_control_assert(imx6_pcie->pciephy_reset);
-		udelay(10);
+		udelay(5);
 		val = imx6_pcie_grp_offset(imx6_pcie);
 		if (imx6_pcie->ext_osc) {
 			/*TODO Configure the external OSC as REF clock */
@@ -1263,14 +1263,15 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 					   IMX8MP_GPR_PCIE_REF_SEL_MASK,
 					   IMX8MP_GPR_PCIE_REF_PLL);
 		}
-		udelay(100);
+		//udelay(100);
+		udelay(10);
 
 		/* release pcie_phy_apb_reset and pcie_phy_init_resetn */
 		val = readl(imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
 		val |= IMX8MP_GPR_REG0_PHY_APB_RST;
 		val |= IMX8MP_GPR_REG0_PHY_INIT_RST;
 		writel(val, imx6_pcie->hsmix_base + IMX8MP_GPR_REG0);
-		udelay(1);
+		//udelay(1);
 
 		/* turn off pcie ltssm */
 		imx6_pcie_ltssm_disable(dev);
@@ -1284,10 +1285,10 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, val,
 				   BIT(18),
 				   BIT(18));
-		udelay(200);
+		//udelay(5);
 
 		reset_control_deassert(imx6_pcie->pciephy_reset);
-		udelay(10);
+		udelay(5);
 
 		imx8_pcie_wait_for_phy_pll_lock(imx6_pcie);
 		break;
@@ -2381,7 +2382,7 @@ static int imx6_pcie_probe(struct platform_device *pdev)
 	struct regmap_config regconfig = imx6_pcie_regconfig;
 	int ret;
 	u32 reg;
-
+	pr_info("SLASH TESTME\n");
 	imx6_pcie = devm_kzalloc(dev, sizeof(*imx6_pcie), GFP_KERNEL);
 	if (!imx6_pcie)
 		return -ENOMEM;
@@ -3123,3 +3124,4 @@ static int __init imx6_pcie_init(void)
 	return platform_driver_register(&imx6_pcie_driver);
 }
 device_initcall(imx6_pcie_init);
+MODULE_LICENSE("GPL");
