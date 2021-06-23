@@ -35,14 +35,27 @@ enum chips { f75373, f75375, f75387 };
 /* Fintek F75375 registers  */
 #define F75375_REG_CONFIG0		0x0
 #define F75375_REG_CONFIG1		0x1
+
 #define F75375_REG_CONFIG2		0x2
+#define CONFIG2_PIN5_MODE		6
+#define CONFIG2_PIN5_MODE_MASK	0x3
+
 #define F75375_REG_CONFIG3		0x3
+#define CONFIG3_PIN6_MODE		6
+#define CONFIG3_PIN6_MODE_MASK	0x3
+
 #define F75375_REG_ADDR			0x4
 #define F75375_REG_INTR			0x31
 #define F75375_CHIP_ID			0x5A
 #define F75375_REG_VERSION		0x5C
 #define F75375_REG_VENDOR		0x5D
 #define F75375_REG_FAN_TIMER		0x60
+
+#define F75387_REG_REAL_TIME_FAULT_SAT	0x36
+#define FAN_FAULT_MECH_MASK 0x3
+#define FAN_FAULT_MECH_OFF 6
+#define TEMP_FAULT_MECH_MASK 0x3
+#define TEMP_FAULT_MECH_OFF 4
 
 #define F75375_REG_VOLT(nr)		(0x10 + (nr))
 #define F75375_REG_VOLT_HIGH(nr)	(0x20 + (nr) * 2)
@@ -112,7 +125,11 @@ struct f75375_data {
 	s16 temp11[2];
 	s8 temp_high[2];
 	s8 temp_max_hyst[2];
-	char force_pwm_mode;
+	bool force_pwm_mode;
+	u32 enable_fan_fault;
+	u32 enable_temp_fault;
+	u32 pin5_mode;
+	u32 pin6_mode;
 };
 
 static int f75375_detect(struct i2c_client *client,
@@ -756,13 +773,43 @@ static const struct attribute_group f75375_group = {
 	.attrs = f75375_attributes,
 };
 
-static int f75375_probe_of(struct i2c_client *client)
+static void f75375_probe_of(struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
+	struct f75375_data *data = i2c_get_clientdata(client);
 	int ret;
 
-	ret = of_property_read_bool(dev->of_node, "force-pwm-mode-3");
-	return ret ? : -EINVAL;
+	data->force_pwm_mode = of_property_read_bool(dev->of_node, "force-pwm-mode-3");
+	if (data->force_pwm_mode)
+		dev_info(dev, "enable force_pwm_mode\n");
+
+	ret = of_property_read_u32(dev->of_node, "pin5-mode",
+		&data->pin5_mode);
+	if (ret) {
+		dev_info(dev, "pin5-mode default disable\n");
+		data->pin5_mode = 0;
+	}
+
+	ret = of_property_read_u32(dev->of_node, "pin6-mode",
+		&data->pin6_mode);
+	if (ret) {
+		dev_info(dev, "pin6-mode default disable\n");
+		data->pin6_mode = 0;
+	}
+
+	ret = of_property_read_u32(dev->of_node, "enable_fan_fault",
+		&data->enable_fan_fault);
+	if (ret) {
+		dev_info(dev, "enable_fan_fault use default\n");
+		data->enable_fan_fault = 0;
+	}
+
+	ret = of_property_read_u32(dev->of_node, "enable_temp_fault",
+		&data->enable_temp_fault);
+	if (ret) {
+		dev_info(dev, "enable_temp_fault default disable\n");
+		data->enable_temp_fault = 0;
+	}
 }
 
 int manu_adjust_rpm(struct i2c_client *client, int rpm)
@@ -772,8 +819,9 @@ int manu_adjust_rpm(struct i2c_client *client, int rpm)
 	u8 nr;
 
 	/* manual, speed */
-	data->force_pwm_mode = f75375_probe_of(client);
-	if (data->force_pwm_mode) {
+	f75375_probe_of(client);
+
+	if (data->force_pwm_mode > 0) {
 		for (nr = 0; nr < 2; nr++) {
 			data->pwm_mode[nr] = 1;
 			data->pwm_enable[nr] = 3;
@@ -795,11 +843,9 @@ static void f75375_init(struct i2c_client *client, struct f75375_data *data,
 		struct f75375s_platform_data *f75375s_pdata)
 {
 	int nr, err;
+	u8 conf, mode;
 
 	if (!f75375s_pdata) {
-		u8 conf, mode;
-		int nr;
-
 		conf = f75375_read8(client, F75375_REG_CONFIG1);
 		mode = f75375_read8(client, F75375_REG_FAN_TIMER);
 		for (nr = 0; nr < 2; nr++) {
@@ -842,15 +888,62 @@ static void f75375_init(struct i2c_client *client, struct f75375_data *data,
 		}
 
 #ifdef CONFIG_OF
-	/* manual, speed */
-	data->force_pwm_mode = f75375_probe_of(client);
-	if (data->force_pwm_mode) {
-		err = manu_adjust_rpm(client, FAN_START_RPM);
-		if (err)
-			dev_err(&client->dev, "manu_adjust_rpm fail\n");
-	}
-#endif
+		f75375_probe_of(client);
 
+		/* manual, speed */
+		if (data->force_pwm_mode > 0) {
+			err = manu_adjust_rpm(client, FAN_START_RPM);
+			if (err)
+				dev_err(&client->dev, "manu_adjust_rpm fail\n");
+		}
+
+		/*
+		 * Configuration Register
+		 * pin5 is used as Fan fault function
+		 * 00: pin5 function is GPIO2.(default)
+		 * 01: pin5 is used as SMI
+		 * 10: pin5 is used as Fan fault function
+		 * 11: LED out(1Hz/0.5Hz select by LED_FREQ register)
+		 */
+		conf = f75375_read8(client, F75375_REG_CONFIG2);
+		conf &= ~(CONFIG2_PIN5_MODE_MASK << CONFIG2_PIN5_MODE);
+		conf |= (data->pin5_mode << CONFIG2_PIN5_MODE);
+		f75375_write8(client, F75375_REG_CONFIG2, conf);
+
+		/*
+		 * Configuration Register
+		 * pin6 is used as Fan fault function
+		 * 00: PIN6 will act as GPIO3.
+		 * 01: PIN6 will act as OVT#
+		 * 10: PIN6 will act as voltage fault function
+		 * 11: PIN6 will function as operating clock input function
+		 */
+		conf = f75375_read8(client, F75375_REG_CONFIG3);
+		conf &= ~(CONFIG3_PIN6_MODE_MASK << CONFIG3_PIN6_MODE);
+		conf |= (data->pin6_mode << CONFIG3_PIN6_MODE);
+		f75375_write8(client, F75375_REG_CONFIG3, conf);
+		pr_info("F75375_REG_CONFIG3 0x%x\n", f75375_read8(client, F75375_REG_CONFIG3));
+
+		/*
+		 * REAL TIME Fault Status Register 1 ⎯ Index 36h
+		 * bit 7 : EN_FAN2_FAULT, Enable fan fault mechanism of FAN2
+		 * bit 6 : EN_FAN1_FAULT, Enable fan fault mechanism of FAN1
+		 */
+		conf = f75375_read8(client, F75387_REG_REAL_TIME_FAULT_SAT);
+		conf &= ~(FAN_FAULT_MECH_MASK << FAN_FAULT_MECH_OFF);
+		conf |= (data->enable_fan_fault << FAN_FAULT_MECH_OFF);
+		f75375_write8(client, F75387_REG_REAL_TIME_FAULT_SAT, conf);
+
+		/*
+		 * REAL TIME Fault Status Register 1 ⎯ Index 36h
+		 * bit 5 : Enable over temperature mechanism of VT2
+		 * bit 4 : Enable over temperature mechanism of VT1.
+		 */
+		conf = f75375_read8(client, F75387_REG_REAL_TIME_FAULT_SAT);
+		conf &= ~(TEMP_FAULT_MECH_MASK << TEMP_FAULT_MECH_OFF);
+		conf |= (data->enable_temp_fault << TEMP_FAULT_MECH_OFF);
+		f75375_write8(client, F75387_REG_REAL_TIME_FAULT_SAT, conf);
+#endif
 		return;
 	}
 
@@ -886,6 +979,10 @@ static int f75375_probe(struct i2c_client *client,
 	mutex_init(&data->update_lock);
 	data->kind = id->driver_data;
 	data->force_pwm_mode = -1;
+	data->enable_fan_fault = 0;
+	data->enable_temp_fault = 0;
+	data->pin5_mode = 0;
+	data->pin6_mode = 0;
 	err = sysfs_create_group(&client->dev.kobj, &f75375_group);
 	if (err)
 		return err;
@@ -910,7 +1007,6 @@ static int f75375_probe(struct i2c_client *client,
 	}
 
 	f75375_init(client, data, f75375s_pdata);
-
 	return 0;
 
 exit_remove:
@@ -963,7 +1059,7 @@ static void f75375_shutdown(struct i2c_client *client)
 
 #ifdef CONFIG_OF
 	/* manual, speed */
-	data->force_pwm_mode = f75375_probe_of(client);
+	f75375_probe_of(client);
 	if (data->force_pwm_mode) {
 		err = manu_adjust_rpm(client, FAN_STOP_RPM);
 		if (err)

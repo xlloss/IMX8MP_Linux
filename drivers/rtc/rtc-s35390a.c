@@ -17,6 +17,7 @@
 #define S35390A_CMD_STATUS2	1
 #define S35390A_CMD_TIME1	2
 #define S35390A_CMD_TIME2	3
+#define S35390A_CMD_INT1_REG1	4
 #define S35390A_CMD_INT2_REG1	5
 
 #define S35390A_BYTE_YEAR	0
@@ -425,6 +426,52 @@ static const struct rtc_class_ops s35390a_rtc_ops = {
 
 static struct i2c_driver s35390a_driver;
 
+int of_property(struct i2c_client *client)
+{
+	struct device *dev = &client->dev;
+	struct s35390a *s35390a = i2c_get_clientdata(client);
+	u32 user_freq;
+	int err;
+	char buf[1];
+	#define INT1FE_OFF 8
+	#define USER_FREQ_OFF 4
+
+	err = of_property_read_u32(dev->of_node, "user-set-frequency",
+		&user_freq);
+	if (err) {
+		dev_info(dev, "user-set-frequency use default 1 Hz\n");
+		user_freq = 16;
+	}
+
+	err = s35390a_get_reg(s35390a, S35390A_CMD_STATUS2, buf, sizeof(buf));
+	if (err < 0) {
+		dev_err(dev, "s35390a_get_reg S35390A_CMD_STATUS2 fail\n");
+		return err;
+	}
+
+	buf[0] |= (1 << INT1FE_OFF);
+	err = s35390a_set_reg(s35390a, S35390A_CMD_STATUS2, buf, sizeof(buf));
+	if (err < 0) {
+		dev_err(dev, "s35390a_set_reg S35390A_CMD_STATUS2 fail\n");
+		return err;
+	}
+
+	err = s35390a_get_reg(s35390a, S35390A_CMD_INT1_REG1, buf, sizeof(buf));
+	if (err < 0) {
+		dev_err(dev, "s35390a_get_reg S35390A_CMD_INT1_REG1 fail\n");
+		return err;
+	}
+
+	buf[0] &= ~(0x1F << USER_FREQ_OFF);
+	buf[0] |= (user_freq << USER_FREQ_OFF);
+	err = s35390a_set_reg(s35390a, S35390A_CMD_INT1_REG1, buf, sizeof(buf));
+	if (err < 0) {
+		dev_err(dev, "s35390a_set_reg S35390A_CMD_INT1_REG1 fail\n");
+		return err;
+	}
+	return 0;
+}
+
 static int s35390a_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
@@ -497,6 +544,10 @@ static int s35390a_probe(struct i2c_client *client,
 	if (status1 & S35390A_FLAG_INT2)
 		rtc_update_irq(s35390a->rtc, 1, RTC_AF);
 
+	err = of_property(client);
+	if (err) {
+		dev_warn(dev, "of_property fail\n");
+	}
 	return 0;
 }
 
