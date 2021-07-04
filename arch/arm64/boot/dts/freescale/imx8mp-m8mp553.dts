@@ -158,14 +158,22 @@
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpio_led>;
+		pinctrl-0 = <&pinctrl_sys_led> , <&pinctrl_dbg_led>;
 
-		led0: power {
-			label = "power";
+		led_sys: led_sys {
+			label = "led_sys";
 			gpios = <&gpio3 16 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 			linux,default-trigger = "gpio";
 		};
+
+		led_dbg: led_dbg {
+			label = "led_dbg";
+			gpios = <&gpio3 6 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			linux,default-trigger = "heartbeat";
+		};
+
 	};
 
 	videopllsscm: videopll_sscm@30360034 {
@@ -192,11 +200,20 @@
 	cpu-supply = <&buck2_reg>;
 };
 
+/* IOJP1 */
 &pwm3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm3>;
 	status = "okay";
 };
+
+/* buzzer use */
+&pwm1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm1>;
+	status = "okay";
+};
+
 
 &ecspi2 {
 	#address-cells = <1>;
@@ -368,6 +385,16 @@
 			};
 		};
 	};
+
+	lm75: board-temp-sensor@4c {
+		compatible = "national,lm75b";
+		reg = <0x4c>;
+	};
+
+	s35390a: s35390a@30 {
+		compatible = "s35390a";
+		reg = <0x30>;
+	};
 };
 
 &i2c2 {
@@ -375,6 +402,48 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
+
+	at24c16: eeprom@50 {
+		compatible = "atmel,24c16";
+		reg = <0x50>;
+	};
+
+	f75387: f75387@2d {
+		compatible = "f75387";
+		reg = <0x2d>;
+
+		force-pwm-mode-3;
+
+		/*
+		 * pin5 is used as Fan fault function
+
+		 * 3: LED out(1Hz/0.5Hz select by LED_FREQ register)
+		 * 2: pin5 is used as Fan fault function
+		 * 1: pin5 is used as SMI
+		 * 0: pin5 function is GPIO2.(default)
+		 */
+		pin5-mode = <2>;
+
+		/*
+		 * 3: PIN6 will function as operating clock input function.
+		 * 2: PIN6 will act as voltage fault function
+		 * 1: PIN6 will act as OVT#
+		 * 0: PIN6 will act as GPIO3.
+		 */
+		pin6-mode = <1>;
+
+		/*
+		 * bit 1: enable FAN2 fan fault mechanism
+		 * bit 0: enable FAN1 fan fault mechanism
+		 */
+		enable_fan_fault = <1>;
+
+		/*
+		 * bit 1: enable over temperature mechanism of VT2
+		 * bit 0: enable over temperature mechanism of VT1
+		 */
+		enable_temp_fault = <1>;
+	};
 
 //	hd3ss3220: tcpc@67 {
 //		compatible = "ti,hd3ss3220";
@@ -405,27 +474,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
-
-    s35390a: s35390a@30 {
-		compatible = "s35390a";
-		reg = <0x30>;
-    };
-
-    f75387: f75387@2d {
-		force-pwm-mode-3;
-		compatible = "f75387";
-		reg = <0x2d>;
-    };
-
-	lm75: board-temp-sensor@4c {
-		compatible = "national,lm75b";
-		reg = <0x4c>;
-	};
-
-	at24c256: eeprom@50 {
-		compatible = "atmel,24c256";
-		reg = <0x50>;
-	};
 };
 
 &i2c4 {
@@ -616,6 +664,9 @@
 			MX8MP_IOMUXC_SD1_DATA3__GPIO2_IO05	0x16
 			MX8MP_IOMUXC_SD1_DATA4__GPIO2_IO06	0x16
 			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07	0x16
+
+			MX8MP_IOMUXC_SAI3_RXFS__GPIO4_IO28	0x16 /* FAN_FAULT# */
+			MX8MP_IOMUXC_SAI3_RXC__GPIO4_IO29	0x16 /* OVT# */
 		>;
 	};
 
@@ -691,6 +742,12 @@
 		>;
 	};
 
+	pinctrl_pwm1: pwm1grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SPDIF_EXT_CLK__PWM1_OUT	0x116
+		>;
+	};
+
 	pinctrl_pwm3: pwm3grp {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO14__PWM3_OUT	0x116
@@ -758,7 +815,13 @@
 		>;
 	};
 
-	pinctrl_gpio_led: gpioledgrp {
+	pinctrl_dbg_led: dbgledgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_NAND_DATA00__GPIO3_IO06	0x19
+		>;
+	};
+
+	pinctrl_sys_led: sysledgrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_NAND_READY_B__GPIO3_IO16	0x19
 		>;
