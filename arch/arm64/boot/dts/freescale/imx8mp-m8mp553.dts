@@ -394,6 +394,18 @@
 	s35390a: s35390a@30 {
 		compatible = "s35390a";
 		reg = <0x30>;
+
+		/*
+		 * set INT1 pin for user set frequency
+		 *
+		 * 0  : disable
+		 * 1  : 16 Hz
+		 * 2  : 8 Hz
+		 * 4  : 4 Hz
+		 * 8  : 2 Hz
+		 * 16 : 1 Hz
+		 */
+		user-set-frequency = <16>;
 	};
 };
 
