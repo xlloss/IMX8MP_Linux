@@ -470,7 +470,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	struct pwm_state state;
 	unsigned int i;
 	int ret;
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	if (!data) {
 		ret = pwm_backlight_parse_dt(&pdev->dev, &defdata);
 		if (ret < 0) {
@@ -480,13 +480,13 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 
 		data = &defdata;
 	}
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	if (data->init) {
 		ret = data->init(&pdev->dev);
 		if (ret < 0)
 			return ret;
 	}
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	pb = devm_kzalloc(&pdev->dev, sizeof(*pb), GFP_KERNEL);
 	if (!pb) {
 		ret = -ENOMEM;
@@ -525,7 +525,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 
 		pb->enable_gpio = gpio_to_desc(data->enable_gpio);
 	}
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	/*
 	 * If the GPIO is not known to be already configured as output, that
 	 * is, if gpiod_get_direction returns either 1 or -EINVAL, change the
@@ -537,32 +537,32 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	if (pb->enable_gpio &&
 	    gpiod_get_direction(pb->enable_gpio) != 0)
 		gpiod_direction_output(pb->enable_gpio, 1);
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	pb->power_supply = devm_regulator_get(&pdev->dev, "power");
 	if (IS_ERR(pb->power_supply)) {
 		ret = PTR_ERR(pb->power_supply);
 		goto err_alloc;
 	}
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	pb->pwm = devm_pwm_get(&pdev->dev, NULL);
 	if (IS_ERR(pb->pwm) && PTR_ERR(pb->pwm) != -EPROBE_DEFER && !node) {
 		dev_err(&pdev->dev, "unable to request PWM, trying legacy API\n");
 		pb->legacy = true;
 		pb->pwm = pwm_request(data->pwm_id, "pwm-backlight");
 	}
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	if (IS_ERR(pb->pwm)) {
 		ret = PTR_ERR(pb->pwm);
 		if (ret != -EPROBE_DEFER)
 			dev_err(&pdev->dev, "unable to request PWM\n");
 		goto err_alloc;
 	}
-
-	dev_dbg(&pdev->dev, "got pwm for backlight\n");
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
+	dev_info(&pdev->dev, "got pwm for backlight\n");
 
 	/* Sync up PWM state. */
 	pwm_init_state(pb->pwm, &state);
-
+	pr_info("SLASH %s %d\n", __func__, __LINE__);
 	/*
 	 * The DT case will set the pwm_period_ns field to 0 and store the
 	 * period, parsed from the DT, in the PWM device. For the non-DT case,
