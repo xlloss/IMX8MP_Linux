@@ -9,7 +9,7 @@
 #include "imx8mp.dtsi"
 
 / {
-	model = "NXP i.MX8MPlus DFI board";
+	model = "NXP i.MX8MPlus DFI board PCIe Test 2021-07-09";
 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
 
 	reserved-memory {
