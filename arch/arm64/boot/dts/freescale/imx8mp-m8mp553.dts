@@ -564,7 +564,7 @@
 };
 
 &lcdif3 {
-	status = "disabled";
+	status = "okay";
 };
 
 &ldb {
