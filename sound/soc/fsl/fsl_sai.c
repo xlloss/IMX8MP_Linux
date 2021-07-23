@@ -288,6 +288,8 @@ static int fsl_sai_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 	struct fsl_sai *sai = snd_soc_dai_get_drvdata(cpu_dai);
 	int ret;
 
+	dev_info(cpu_dai->dev, "fsl_sai_set_dai_sysclk: clk_id %d freq %d\n", clk_id, freq);
+
 	if (dir == SND_SOC_CLOCK_IN)
 		return 0;
 
@@ -481,7 +483,7 @@ static int fsl_sai_check_ver(struct device *dev)
 	if (ret < 0)
 		return ret;
 
-	dev_dbg(dev, "VERID: 0x%016X\n", val);
+	dev_info(dev, "VERID: 0x%016X\n", val);
 
 	sai->verid.id = (val & FSL_SAI_VER_ID_MASK) >> FSL_SAI_VER_ID_SHIFT;
 	sai->verid.extfifo_en = (val & FSL_SAI_VER_EFIFO_EN);
@@ -491,7 +493,7 @@ static int fsl_sai_check_ver(struct device *dev)
 	if (ret < 0)
 		return ret;
 
-	dev_dbg(dev, "PARAM: 0x%016X\n", val);
+	dev_info(dev, "PARAM: 0x%016X\n", val);
 
 	/* max slots per frame, power of 2 */
 	sai->param.spf = 1 <<
@@ -504,7 +506,7 @@ static int fsl_sai_check_ver(struct device *dev)
 	/* number of datalines implemented */
 	sai->param.dln = val & FSL_SAI_PAR_DLN_MASK;
 
-	dev_dbg(dev,
+	dev_info(dev,
 		"Version: 0x%08X, SPF: %u, WPF: %u, DLN: %u\n",
 		sai->verid.id, sai->param.spf, sai->param.wpf, sai->param.dln
 	);
@@ -544,7 +546,7 @@ static int fsl_sai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 		if (ret != 0 && clk_rate / ret < 1000)
 			continue;
 
-		dev_dbg(dai->dev,
+		dev_info(dai->dev,
 			"ratio %d for freq %dHz based on clock %ldHz\n",
 			ratio, freq, clk_rate);
 
@@ -1522,6 +1524,15 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	    sai->verid.id >= FSL_SAI_VERID_0301) {
 		regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
 				   FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
+
+		pr_info("SLASH %s %d\n", __func__, __LINE__);
+		clk_prepare_enable(sai->bus_clk);
+		clk_prepare_enable(sai->mclk_clk[1]);
+		regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
+			FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
+
+		regmap_update_bits(sai->regmap, FSL_SAI_TCSR(8),
+			FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
 	}
 
 	if (sai->verid.timestamp_en) {
