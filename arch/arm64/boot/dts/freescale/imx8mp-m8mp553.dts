@@ -242,6 +242,25 @@
 		mr = <310>;
 		pf = <2>;
 	};
+
+	/* mode select
+	 * {"rs422-full"},
+	 * {"pure-rs232"},
+	 * {"rs485-half tx-en low act"},
+	 * {"rs485-half tx-en hi  act"},
+	 * {"rs422-full with termi bias resistor"},
+	 * {"pure-rs232 co-exists rs485"},
+	 * {"rs485-half with termi bias resistor"},
+	 * {"shutdown"},
+	 */
+	f81439_ctl: f81439_ctl@0 {
+		compatible = "fintek, f81439";
+		pinctrl-0 = <&pinctrl_f81439>;
+		default-mode = "pure-rs232";
+		mode0-gpios = <&gpio4 25 GPIO_ACTIVE_HIGH>;
+		mode1-gpios = <&gpio4 26 GPIO_ACTIVE_HIGH>;
+		mode2-gpios = <&gpio4 27 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &clk {
@@ -629,6 +648,16 @@
 	status = "okay";
 };
 
+/* for f81439 com4*/
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+	assigned-clocks = <&clk IMX8MP_CLK_UART4>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
+	fsl,uart-has-rtscts;
+	status = "okay";
+};
+
 &usb3_phy0 {
 	fsl,phy-tx-vref-tune = <6>;
 	fsl,phy-tx-rise-tune = <0>;
@@ -949,6 +978,23 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_UART3_RXD__UART3_DCE_RX            0x140
 			MX8MP_IOMUXC_UART3_TXD__UART3_DCE_TX            0x140
+		>;
+	};
+
+	pinctrl_uart4: uart4grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_ECSPI2_SS0__UART4_DCE_RTS		0x140
+			MX8MP_IOMUXC_ECSPI2_MOSI__UART4_DCE_TX		0x140
+			MX8MP_IOMUXC_ECSPI2_MISO__UART4_DCE_CTS		0x140
+			MX8MP_IOMUXC_ECSPI2_SCLK__UART4_DCE_RX		0x140
+		>;
+	};
+
+	pinctrl_f81439: f81439grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI2_TXC__GPIO4_IO25			0x140
+			MX8MP_IOMUXC_SAI2_TXD0__GPIO4_IO26			0x140
+			MX8MP_IOMUXC_SAI2_MCLK__GPIO4_IO27			0x140
 		>;
 	};
 

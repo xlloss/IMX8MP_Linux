@@ -474,6 +474,14 @@ config XILINX_SDFEC
 
 	  If unsure, say N.
 
+config FINTEK_F81439
+	tristate "Fintek F81439 Control Driver"
+	help
+	  The F81439A is programmable, monolithic multi-protocol transceiver
+	  device that contains RS-232 and RS-485 / RS-422 drivers and receivers.
+
+	  If unsure, say N.
+
 config MISC_RTSX
 	tristate
 	default MISC_RTSX_PCI || MISC_RTSX_USB
