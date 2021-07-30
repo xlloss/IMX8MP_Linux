@@ -1,0 +1,147 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2021 DFI
+ */
+
+/dts-v1/;
+
+#include "imx8mp-trcnw400.dtsi"
+
+/ {
+	model = "TOPCON TOPARM8M V1.3";
+	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
+
+};
+
+&mipi_csi_0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	port@0 {
+		reg = <0>;
+		mipi_csi0_ep_is79989: endpoint {
+			remote-endpoint = <&isl79985_mipi_0_ep>;
+			data-lanes = <1>;
+			csis-hs-settle = <13>;
+			csis-clk-settle = <2>;
+			csis-wclk;
+		};
+	};
+};
+
+&mipi_csi_1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	port@1 {
+		reg = <1>;
+		mipi_csi1_ep_is79989: endpoint {
+			remote-endpoint = <&isl79985_mipi_1_ep>;
+			data-lanes = <1>;
+			csis-hs-settle = <13>;
+			csis-clk-settle = <2>;
+			csis-wclk;
+		};
+	};
+};
+
+&i2c2 {
+	/* ISL79985 A */
+	isl79985a: isl79985_mipi@44 {
+		compatible = "isl79985";
+		reg = <0x44>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_isl79985a_rst>;
+		csi_id = <0>;
+		reset-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+
+		port@0 {
+			isl79985_mipi_0_ep: endpoint {
+				remote-endpoint = <&mipi_csi0_ep_is79989>;
+				data-lanes = <1>;
+				clock-lanes = <1>;
+			};
+		};
+
+	};
+};
+
+&i2c4 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c4>;
+	status = "okay";
+
+
+	/* ISL79985 B */
+	isl79985b: isl79985_mipi@44 {
+		compatible = "isl79985";
+		reg = <0x44>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_isl79985b_rst>;
+		csi_id = <0>;
+		reset-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+
+		port@0 {
+			isl79985_mipi_1_ep: endpoint {
+				remote-endpoint = <&mipi_csi1_ep_is79989>;
+				data-lanes = <1>;
+				clock-lanes = <1>;
+			};
+		};
+
+	};
+};
+
+&pcie{
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pcie>;
+	reset-gpio = <&gpio2 7 GPIO_ACTIVE_LOW>;
+	clkreq-gpio = <&gpio2 6 GPIO_ACTIVE_LOW>;
+	ext_osc = <1>;
+	clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
+		 <&clk IMX8MP_CLK_PCIE_AUX>,
+		 <&clk IMX8MP_CLK_PCIE_PHY>,
+		 <&clk IMX8MP_CLK_PCIE_ROOT>;
+	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
+	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>,
+			  <&clk IMX8MP_CLK_PCIE_AUX>;
+	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
+				 <&clk IMX8MP_SYS_PLL2_50M>;
+	reserved-region = <&rpmsg_reserved>;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl_isl79985a_rst: isl79985a_rst {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 1st RST */
+		>;
+	};
+
+	pinctrl_isl79985b_rst: isl79985b_rst {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x19 /* ISL79985 2nd RST */
+		>;
+	};
+
+	pinctrl_i2c4: i2c4grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL			0x400001c3
+			MX8MP_IOMUXC_I2C4_SDA__I2C4_SDA			0x400001c3
+		>;
+	};
+
+	pinctrl_pcie: pciegrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD1_DATA4__GPIO2_IO06		0x41
+			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07		0x41
+		>;
+	};
+};

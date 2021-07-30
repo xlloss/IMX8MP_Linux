@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright 2019 NXP
+ * Copyright 2121 DFI
  */
 
 /dts-v1/;
@@ -9,7 +9,7 @@
 #include "imx8mp.dtsi"
 
 / {
-	model = "NXP i.MX8MPlus DFI board";
+	model = "TOPCON TOPARM8M";
 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
 
 	reserved-memory {
@@ -50,59 +50,59 @@
 		off-on-delay-us = <12000>;
 	};
 
-    reg_gpio_usb2_12: regulator-usb2-12 {
-            compatible = "regulator-gpio";
-            pinctrl-names = "default";
-            pinctrl-0 = <&pinctrl_usb2_12_en>;
-            regulator-min-microvolt = <0000001>;
-            regulator-max-microvolt = <3300000>;
-            regulator-name = "gpio_usb2_12";
-            regulator-type = "voltage";
-            gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
-            gpios-states = <1>;
-            states = <3300000 0x1 0000000 0x0>;
-    };
+	reg_gpio_usb2_12: regulator-usb2-12 {
+			compatible = "regulator-gpio";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_usb2_12_en>;
+			regulator-min-microvolt = <0000001>;
+			regulator-max-microvolt = <3300000>;
+			regulator-name = "gpio_usb2_12";
+			regulator-type = "voltage";
+			gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+			gpios-states = <1>;
+			states = <3300000 0x1 0000000 0x0>;
+	};
 
-    reg_gpio_usb2_34: regulator-usb2-34 {
-            compatible = "regulator-gpio";
-            pinctrl-names = "default";
-            pinctrl-0 = <&pinctrl_usb2_34_en>;
-            regulator-min-microvolt = <0000001>;
-            regulator-max-microvolt = <3300000>;
-            regulator-name = "gpio_usb2_34";
-            regulator-type = "voltage";
-            gpios = <&gpio1 8 GPIO_ACTIVE_HIGH>;
-            gpios-states = <1>;
-            states = <3300000 0x1 0000000 0x0>;
-    };
+	reg_gpio_usb2_34: regulator-usb2-34 {
+			compatible = "regulator-gpio";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_usb2_34_en>;
+			regulator-min-microvolt = <0000001>;
+			regulator-max-microvolt = <3300000>;
+			regulator-name = "gpio_usb2_34";
+			regulator-type = "voltage";
+			gpios = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+			gpios-states = <1>;
+			states = <3300000 0x1 0000000 0x0>;
+	};
 
-    reg_gpio_usb2_56: regulator-usb2-56 {
-            compatible = "regulator-gpio";
-            pinctrl-names = "default";
-            pinctrl-0 = <&pinctrl_usb2_56_en>;
-            regulator-min-microvolt = <0000001>;
-            regulator-max-microvolt = <3300000>;
-            regulator-name = "gpio_usb2_56";
-            regulator-type = "voltage";
-            gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
-            gpios-states = <1>;
-            states = <3300000 0x1 0000000 0x0>;
-    };
+	reg_gpio_usb2_56: regulator-usb2-56 {
+			compatible = "regulator-gpio";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_usb2_56_en>;
+			regulator-min-microvolt = <0000001>;
+			regulator-max-microvolt = <3300000>;
+			regulator-name = "gpio_usb2_56";
+			regulator-type = "voltage";
+			gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+			gpios-states = <1>;
+			states = <3300000 0x1 0000000 0x0>;
+	};
 
-    reg_dac5571_bl: regulator-dac5571_bl {
-            compatible = "regulator-gpio";
-            pinctrl-names = "default";
-            pinctrl-0 = <&pinctrl_dac5571_bl_en>;
-            regulator-min-microvolt = <0000001>;
-            regulator-max-microvolt = <3300000>;
-            regulator-name = "dac5571_bl";
-            regulator-type = "voltage";
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
-            gpios-states = <1>;
-            states = <3300000 0x1 0000001 0x0>;
-            enable-at-boot;
-            status = "okay";
-    };
+	reg_dac5571_bl: regulator-dac5571_bl {
+			compatible = "regulator-gpio";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_dac5571_bl_en>;
+			regulator-min-microvolt = <0000001>;
+			regulator-max-microvolt = <3300000>;
+			regulator-name = "dac5571_bl";
+			regulator-type = "voltage";
+			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+			gpios-states = <1>;
+			states = <3300000 0x1 0000001 0x0>;
+			enable-at-boot;
+			status = "okay";
+	};
 
 	panel-lvds0 {
 		compatible = "panel-lvds";
@@ -362,39 +362,18 @@
 		status = "okay";
 	};
 
-    tca6408: gpio@21 {
+	tca6408: gpio@21 {
 		compatible = "ti,tca6408";
 		reg = <0x21>;
 		gpio-controller;
 		#gpio-cells = <2>;
-    };
-
-	/* ISL79985 A */
-	isl79985a: isl79985_mipi@44 {
-		compatible = "isl79985";
-		reg = <0x44>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_isl79985a_rst>;
-		csi_id = <0>;
-		reset-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-
-		port@0 {
-			isl79985_mipi_0_ep: endpoint {
-				remote-endpoint = <&mipi_csi0_ep_is79989>;
-				data-lanes = <1>;
-				clock-lanes = <1>;
-			};
-		};
-
 	};
 
 	hd3ss3220: tcpc@67 {
 		compatible = "ti,hd3ss3220";
 		reg = <0x67>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_int_3320>;
+		pinctrl-0 = <&pinctrl_hd3ss3220_isr>;
 		interrupt-parent = <&gpio2>;
 		interrupts = <5 8>;
 
@@ -420,16 +399,16 @@
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
 
-    s35390a: s35390a@30 {
+	s35390a: s35390a@30 {
 		compatible = "s35390a";
 		reg = <0x30>;
-    };
+	};
 
-    f75387: f75387@2d {
+	f75387: f75387@2d {
 		force-pwm-mode-3;
 		compatible = "f75387";
 		reg = <0x2d>;
-    };
+	};
 
 	lm75: board-temp-sensor@4c {
 		compatible = "national,lm75b";
@@ -439,35 +418,6 @@
 	at24c256: eeprom@50 {
 		compatible = "atmel,24c256";
 		reg = <0x50>;
-	};
-};
-
-&i2c4 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c4>;
-	status = "okay";
-
-
-	/* ISL79985 B */
-	isl79985b: isl79985_mipi@44 {
-		compatible = "isl79985";
-		reg = <0x44>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_isl79985b_rst>;
-		csi_id = <0>;
-		reset-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-
-		port@0 {
-			isl79985_mipi_1_ep: endpoint {
-				remote-endpoint = <&mipi_csi1_ep_is79989>;
-				data-lanes = <1>;
-				clock-lanes = <1>;
-			};
-		};
-
 	};
 };
 
@@ -511,31 +461,10 @@
 	status = "okay";
 };
 
-&pcie{
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pcie>;
-	disable-gpio = <&gpio2 6 GPIO_ACTIVE_LOW>;
-	reset-gpio = <&gpio2 7 GPIO_ACTIVE_LOW>;
-	clkreq-gpio = <&gpio5 20 GPIO_ACTIVE_LOW>;
-	ext_osc = <1>;
-	clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
-		 <&clk IMX8MP_CLK_PCIE_AUX>,
-		 <&clk IMX8MP_CLK_PCIE_PHY>,
-		 <&clk IMX8MP_CLK_PCIE_ROOT>;
-	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
-	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>,
-			  <&clk IMX8MP_CLK_PCIE_AUX>;
-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
-				 <&clk IMX8MP_SYS_PLL2_50M>;
-	reserved-region = <&rpmsg_reserved>;
-	status = "okay";
-};
 
 &pcie_phy{
 	status = "okay";
 };
-
-
 
 &uart1 {
 	pinctrl-names = "default";
@@ -650,9 +579,6 @@
 			MX8MP_IOMUXC_SD1_DATA0__GPIO2_IO02		0x1d0 	/* HUB_nRST 		*/
 			MX8MP_IOMUXC_SD1_DATA2__GPIO2_IO04		0x1d0 	/* LCD_DPS			*/
 			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11		0x19 /* CSI_PWDN */
-
-
-
 		>;
 	};
 
@@ -692,19 +618,7 @@
 		>;
 	};
 
-	pinctrl_isl79985a_rst: isl79985a_rst {
-		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 1st RST */
-		>;
-	};
-
-	pinctrl_isl79985b_rst: isl79985b_rst {
-		fsl,pins = <
-			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x19 /* ISL79985 2nd RST */
-		>;
-	};
-
-	pinctrl_int_3320: int_3320 {
+	pinctrl_hd3ss3220_isr: hd3ss3220_isr {
 		fsl,pins = <
 			MX8MP_IOMUXC_SD1_DATA3__GPIO2_IO05	0x19 /* INT_3320 */
 		>;
@@ -801,21 +715,6 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_I2C3_SCL__I2C3_SCL			0x400001c3
 			MX8MP_IOMUXC_I2C3_SDA__I2C3_SDA			0x400001c3
-		>;
-	};
-
-	pinctrl_i2c4: i2c4grp {
-		fsl,pins = <
-			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL			0x400001c3
-			MX8MP_IOMUXC_I2C4_SDA__I2C4_SDA			0x400001c3
-		>;
-	};
-
-	pinctrl_pcie: pciegrp {
-		fsl,pins = <
-			MX8MP_IOMUXC_I2C4_SCL__HSIOMIX_PCIE_CLKREQ_B	0x61 /* open drain, pull up */
-			MX8MP_IOMUXC_SD1_DATA4__GPIO2_IO06		0x41
-			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07		0x41
 		>;
 	};
 
@@ -974,40 +873,6 @@
 
 &mix_gpu_ml {
 	status = "okay";
-};
-
-&mipi_csi_0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	status = "okay";
-
-	port@0 {
-		reg = <0>;
-		mipi_csi0_ep_is79989: endpoint {
-			remote-endpoint = <&isl79985_mipi_0_ep>;
-			data-lanes = <1>;
-			csis-hs-settle = <13>;
-			csis-clk-settle = <2>;
-			csis-wclk;
-		};
-	};
-};
-
-&mipi_csi_1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	status = "okay";
-
-	port@1 {
-		reg = <1>;
-		mipi_csi1_ep_is79989: endpoint {
-			remote-endpoint = <&isl79985_mipi_1_ep>;
-			data-lanes = <1>;
-			csis-hs-settle = <13>;
-			csis-clk-settle = <2>;
-			csis-wclk;
-		};
-	};
 };
 
 &cameradev {
