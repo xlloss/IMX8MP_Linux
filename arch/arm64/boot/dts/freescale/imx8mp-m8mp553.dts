@@ -211,6 +211,34 @@
 		status = "okay";
 	};
 
+	reg_eqos_rst: regulator-reg_eqos_rst {
+		compatible = "regulator-gpio";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_eqos_rst_en>;
+		regulator-min-microvolt = <0000001>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "eqos_rst_en";
+		regulator-type = "voltage";
+		gpios = <&gpio4 0 GPIO_ACTIVE_HIGH>;
+		gpios-states = <1>;
+		states = <3300000 0x1 0000001 0x0>;
+		status = "okay";
+	};
+
+	reg_fec_rst: regulator-reg_fec_rst {
+		compatible = "regulator-gpio";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_fec_rst_en>;
+		regulator-min-microvolt = <0000001>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "fec_rst_en";
+		regulator-type = "voltage";
+		gpios = <&gpio4 2 GPIO_ACTIVE_HIGH>;
+		gpios-states = <1>;
+		states = <3300000 0x1 0000001 0x0>;
+		status = "okay";
+	};
+
 	panel-lvds0 {
 		compatible = "panel-lvds";
 		status = "okay";
@@ -1029,7 +1057,12 @@
 			MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3		0x1f
 			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL	0x1f
 			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x1f
-			MX8MP_IOMUXC_SAI2_RXC__GPIO4_IO22		0x19
+		>;
+	};
+
+	pinctrl_eqos_rst_en: eqos_rst_en {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI1_RXFS__GPIO4_IO00		0x19
 		>;
 	};
 
@@ -1049,6 +1082,11 @@
 			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3		0x1f
 			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x1f
 			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC		0x1f
+		>;
+	};
+
+	pinctrl_fec_rst_en: fec_rst_en {
+		fsl,pins = <
 			MX8MP_IOMUXC_SAI1_RXD0__GPIO4_IO02		0x19
 		>;
 	};
