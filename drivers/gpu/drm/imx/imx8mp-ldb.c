@@ -9,6 +9,7 @@
 #include <linux/of_device.h>
 #include <linux/phy/phy.h>
 
+#include <linux/delay.h>
 #include <drm/bridge/fsl_imx_ldb.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_probe_helper.h>
@@ -59,6 +60,7 @@ struct imx8mp_ldb {
 	struct ldb base;
 	struct imx8mp_ldb_channel channel[LDB_CH_NUM];
 	struct clk *clk_root;
+	u32 startup_delay;
 };
 
 static struct drm_encoder *imx8mp_ldb_connector_best_encoder(
@@ -76,6 +78,9 @@ static void imx8mp_ldb_encoder_enable(struct drm_encoder *encoder)
 						enc_to_imx8mp_ldb_ch(encoder);
 	struct imx8mp_ldb *imx8mp_ldb = imx8mp_ldb_ch->imx8mp_ldb;
 	struct ldb *ldb = &imx8mp_ldb->base;
+
+	if (imx8mp_ldb->startup_delay > 0)
+		msleep(imx8mp_ldb->startup_delay);
 
 	clk_prepare_enable(imx8mp_ldb->clk_root);
 
@@ -396,10 +401,16 @@ static int imx8mp_ldb_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct imx8mp_ldb *imx8mp_ldb;
+	int ret;
 
 	imx8mp_ldb = devm_kzalloc(dev, sizeof(*imx8mp_ldb), GFP_KERNEL);
 	if (!imx8mp_ldb)
 		return -ENOMEM;
+
+	ret = of_property_read_u32(dev->of_node,
+		"startup-delay-us", &imx8mp_ldb->startup_delay);
+	if (ret)
+		imx8mp_ldb->startup_delay = 0;
 
 	dev_set_drvdata(dev, imx8mp_ldb);
 
