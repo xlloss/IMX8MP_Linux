@@ -154,6 +154,7 @@
 		gpios-states = <1>;
 		states = <3300000 0x1 0000001 0x0>;
 		status = "okay";
+	};
 
 	reg_audio_vdda: regulator-audio_vdda {
 		compatible = "regulator-fixed";
