@@ -773,7 +773,7 @@ static const struct snd_kcontrol_new sgtl5000_snd_controls[] = {
 	SOC_SINGLE_TLV("BASS 4", SGTL5000_DAP_EQ_BASS_BAND4,
 	0, 0x5F, 0, bass_band),
 };
-
+#ifdef ENABLE_DIGITAL_MUTE
 /* mute the codec used by alsa core */
 static int sgtl5000_digital_mute(struct snd_soc_dai *codec_dai, int mute)
 {
@@ -790,7 +790,7 @@ static int sgtl5000_digital_mute(struct snd_soc_dai *codec_dai, int mute)
 
 	return 0;
 }
-
+#endif
 /* set codec format */
 static int sgtl5000_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 {
@@ -1172,12 +1172,12 @@ void sgtl5000_shutdown(struct snd_pcm_substream *substream,
 
 static const struct snd_soc_dai_ops sgtl5000_ops = {
 	.hw_params = sgtl5000_pcm_hw_params,
-#if ENABLE_DIGITAL_MUTE
+#ifdef ENABLE_DIGITAL_MUTE
 	.digital_mute = sgtl5000_digital_mute,
 #endif
 	.set_fmt = sgtl5000_set_dai_fmt,
 	.set_sysclk = sgtl5000_set_dai_sysclk,
-#if ENABLE_START_UP_SHUTDOWN
+#ifdef ENABLE_START_UP_SHUTDOWN
 	.startup = sgtl5000_startup,
 	.shutdown = sgtl5000_shutdown,
 #endif
@@ -1596,7 +1596,6 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	struct device_node *np = client->dev.of_node;
 	u32 value;
 	u16 ana_pwr;
-	unsigned long clk_rate;
 
 	sgtl5000 = devm_kzalloc(&client->dev, sizeof(*sgtl5000), GFP_KERNEL);
 	if (!sgtl5000)

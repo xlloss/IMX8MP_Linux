@@ -154,6 +154,32 @@
 		gpios-states = <1>;
 		states = <3300000 0x1 0000001 0x0>;
 		status = "okay";
+
+	reg_audio_vdda: regulator-audio_vdda {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-3.3V";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	reg_audio_vddio: regulator-audio_vddio {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-3.3V";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	reg_audio_vddd: regulator-audio_vddd {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-1.8V";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-boot-on;
+		regulator-always-on;
 	};
 
 	panel-lvds0 {
@@ -260,6 +286,41 @@
 		mode0-gpios = <&gpio4 25 GPIO_ACTIVE_HIGH>;
 		mode1-gpios = <&gpio4 26 GPIO_ACTIVE_HIGH>;
 		mode2-gpios = <&gpio4 27 GPIO_ACTIVE_HIGH>;
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "sgtl5000";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,convert-rate = <48000>;
+
+		simple-audio-card,bitclock-master = <&dailink0_master>;
+		simple-audio-card,frame-master = <&dailink0_master>;
+
+		simple-audio-card,widgets =
+			"Microphone", "Microphone Jack",
+			"Headphone", "Headphone Jack",
+			"Speaker", "Speaker Ext",
+			"Line", "Line In Jack";
+
+		simple-audio-card,routing =
+			"MIC_IN", "Microphone Jack",
+			"Microphone Jack", "Mic Bias",
+			"LINE_IN", "Line In Jack",
+			"Headphone Jack", "HP_OUT",
+			"Speaker Ext", "LINE_OUT",
+			"Playback", "AIFIN",
+			"AIFOUT", "Capture";
+
+		simple-audio-card,cpu {
+			#sound-dai-cells = <0>;
+			sound-dai = <&sai3>;
+		};
+
+		dailink0_master: simple-audio-card,codec {
+			sound-dai = <&sgtl5000>;
+			clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
+		};
 	};
 };
 
@@ -533,6 +594,46 @@
 		 */
 		enable_temp_fault = <1>;
 	};
+
+	sgtl5000: audio-codec@a {
+		compatible = "fsl,sgtl5000";
+		#sound-dai-cells = <0>;
+		reg = <0x0a>;
+		VDDA-supply = <&reg_audio_vdda>;
+		VDDIO-supply = <&reg_audio_vddio>;
+		VDDD-supply = <&reg_audio_vddd>;
+
+		micbias-resistor-k-ohms = <2>;
+		micbias-voltage-m-volts = <2250>;
+
+		clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
+		clock-names = "mclk";
+		assigned-clock-rates = <24576000>;
+	};
+};
+
+&sai3 {
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai3>;
+	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
+	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+	assigned-clock-rates = <24576000>;
+	clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_IPG>, <&clk IMX8MP_CLK_DUMMY>,
+		<&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
+		<&clk IMX8MP_CLK_DUMMY>,<&clk IMX8MP_AUDIO_PLL1_OUT>,<&clk IMX8MP_AUDIO_PLL2_OUT>;
+	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3", "pll8k", "pll11k";
+	fsl,sai-mclk-direction-output;
+	status = "okay";
+};
+
+&sdma2 {
+	status = "okay";
+};
+
+&easrc {
+	fsl,asrc-rate  = <44100>;
+	status = "okay";
 };
 
 &i2c3 {
@@ -744,6 +845,16 @@
 
 			MX8MP_IOMUXC_SAI3_RXFS__GPIO4_IO28	0x16 /* FAN_FAULT# */
 			MX8MP_IOMUXC_SAI3_RXC__GPIO4_IO29	0x16 /* OVT# */
+		>;
+	};
+
+	pinctrl_sai3: sai3grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI3_TXFS__AUDIOMIX_SAI3_TX_SYNC   0xd6
+			MX8MP_IOMUXC_SAI3_TXC__AUDIOMIX_SAI3_TX_BCLK    0xd6
+			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00  0xd6
+			MX8MP_IOMUXC_SAI3_TXD__AUDIOMIX_SAI3_TX_DATA00  0xd6
+			MX8MP_IOMUXC_SAI3_MCLK__AUDIOMIX_SAI3_MCLK      0xd6
 		>;
 	};
 
