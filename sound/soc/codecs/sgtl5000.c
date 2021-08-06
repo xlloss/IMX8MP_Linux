@@ -1153,6 +1153,18 @@ static int sgtl5000_set_bias_level(struct snd_soc_component *component,
 	return 0;
 }
 
+int sgtl5000_startup(struct snd_pcm_substream *substream,
+	struct snd_soc_dai *dai)
+{
+	return 0;
+}
+
+void sgtl5000_shutdown(struct snd_pcm_substream *substream,
+	struct snd_soc_dai *dai)
+{
+}
+
+
 #define SGTL5000_FORMATS (SNDRV_PCM_FMTBIT_S16_LE |\
 			SNDRV_PCM_FMTBIT_S20_3LE |\
 			SNDRV_PCM_FMTBIT_S24_LE |\
@@ -1160,9 +1172,15 @@ static int sgtl5000_set_bias_level(struct snd_soc_component *component,
 
 static const struct snd_soc_dai_ops sgtl5000_ops = {
 	.hw_params = sgtl5000_pcm_hw_params,
+#if ENABLE_DIGITAL_MUTE
 	.digital_mute = sgtl5000_digital_mute,
+#endif
 	.set_fmt = sgtl5000_set_dai_fmt,
 	.set_sysclk = sgtl5000_set_dai_sysclk,
+#if ENABLE_START_UP_SHUTDOWN
+	.startup = sgtl5000_startup,
+	.shutdown = sgtl5000_shutdown,
+#endif
 };
 
 static struct snd_soc_dai_driver sgtl5000_dai = {
@@ -1578,6 +1596,7 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	struct device_node *np = client->dev.of_node;
 	u32 value;
 	u16 ana_pwr;
+	unsigned long clk_rate;
 
 	sgtl5000 = devm_kzalloc(&client->dev, sizeof(*sgtl5000), GFP_KERNEL);
 	if (!sgtl5000)
@@ -1596,7 +1615,7 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 		goto disable_regs;
 	}
 
-	sgtl5000->mclk = devm_clk_get(&client->dev, NULL);
+	sgtl5000->mclk = devm_clk_get(&client->dev, "mclk");
 	if (IS_ERR(sgtl5000->mclk)) {
 		ret = PTR_ERR(sgtl5000->mclk);
 		/* Defer the probe to see if the clk will be provided later */
