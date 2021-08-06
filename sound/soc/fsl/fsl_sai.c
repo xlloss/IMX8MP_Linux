@@ -481,7 +481,7 @@ static int fsl_sai_check_ver(struct device *dev)
 	if (ret < 0)
 		return ret;
 
-	dev_dbg(dev, "VERID: 0x%016X\n", val);
+	dev_info(dev, "VERID: 0x%016X\n", val);
 
 	sai->verid.id = (val & FSL_SAI_VER_ID_MASK) >> FSL_SAI_VER_ID_SHIFT;
 	sai->verid.extfifo_en = (val & FSL_SAI_VER_EFIFO_EN);
@@ -491,7 +491,7 @@ static int fsl_sai_check_ver(struct device *dev)
 	if (ret < 0)
 		return ret;
 
-	dev_dbg(dev, "PARAM: 0x%016X\n", val);
+	dev_info(dev, "PARAM: 0x%016X\n", val);
 
 	/* max slots per frame, power of 2 */
 	sai->param.spf = 1 <<
@@ -504,7 +504,7 @@ static int fsl_sai_check_ver(struct device *dev)
 	/* number of datalines implemented */
 	sai->param.dln = val & FSL_SAI_PAR_DLN_MASK;
 
-	dev_dbg(dev,
+	dev_info(dev,
 		"Version: 0x%08X, SPF: %u, WPF: %u, DLN: %u\n",
 		sai->verid.id, sai->param.spf, sai->param.wpf, sai->param.dln
 	);
@@ -1522,6 +1522,14 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	    sai->verid.id >= FSL_SAI_VERID_0301) {
 		regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
 				   FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
+
+		clk_prepare_enable(sai->bus_clk);
+		clk_prepare_enable(sai->mclk_clk[1]);
+		regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
+			FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
+
+		regmap_update_bits(sai->regmap, FSL_SAI_TCSR(8),
+			FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
 	}
 
 	if (sai->verid.timestamp_en) {
