@@ -16,6 +16,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
+#include <linux/delay.h>
 #include <video/display_timing.h>
 #include <video/of_display_timing.h>
 #include <video/videomode.h>
@@ -23,6 +24,8 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_panel.h>
 
+#define BL_VOLT_MAX 3300000
+#define BL_VOLT_MIN 0000001
 struct panel_lvds {
 	struct drm_panel panel;
 	struct device *dev;
@@ -39,6 +42,7 @@ struct panel_lvds {
 
 	struct gpio_desc *enable_gpio;
 	struct gpio_desc *reset_gpio;
+	u32 bl_delay;
 };
 
 static inline struct panel_lvds *to_panel_lvds(struct drm_panel *panel)
@@ -87,6 +91,8 @@ static int panel_lvds_prepare(struct drm_panel *panel)
 		}
 	}
 
+	regulator_set_voltage(lvds->supply, BL_VOLT_MAX, BL_VOLT_MAX);
+
 	if (lvds->enable_gpio)
 		gpiod_set_value_cansleep(lvds->enable_gpio, 1);
 
@@ -103,6 +109,7 @@ static int panel_lvds_enable(struct drm_panel *panel)
 		backlight_update_status(lvds->backlight);
 	}
 
+	msleep(lvds->bl_delay);
 	return 0;
 }
 
@@ -190,6 +197,10 @@ static int panel_lvds_parse_dt(struct panel_lvds *lvds)
 	}
 
 	lvds->data_mirror = of_property_read_bool(np, "data-mirror");
+
+	ret = of_property_read_u32(np, "backlight-delay", &lvds->bl_delay);
+	if (ret < 0)
+		lvds->bl_delay = 0;
 
 	return 0;
 }
