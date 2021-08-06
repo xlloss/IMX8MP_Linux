@@ -26,4 +26,13 @@ config USB_ROLES_INTEL_XHCI
 	  To compile the driver as a module, choose M here: the module will
 	  be called intel-xhci-usb-role-switch.
 
+config M8MP553_USB_ROLES_SW
+	tristate "DFI M8MP553 USB Role Switch"
+	depends on USB_DWC3_IMX8MP
+	default y
+	help
+	  Driver for the internal USB role switch for switching the USB data
+	  lines between the xHCI host controller and the dwc3 gadget controller
+	  found on NXP IMX8MP.
+
 endif # USB_ROLE_SWITCH

@@ -350,6 +350,22 @@
 			clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
 		};
 	};
+
+	xhci_otg_sw: xhci_otg_sw {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_otg_sw>;
+		compatible = "dfi, otg-sw";
+		role-gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+
+		usb_con: connector {
+			port {
+				otg_sw: endpoint {
+					remote-endpoint = <&usb3_drd_sw>;
+				};
+			};
+		};
+
+	};
 };
 
 &clk {
@@ -801,11 +817,18 @@
 };
 
 &usb_dwc3_0 {
-	dr_mode = "peripheral";
+	dr_mode = "otg";
 	hnp-disable;
 	srp-disable;
 	adp-disable;
+	usb-role-switch;
 	status = "okay";
+
+	port {
+		usb3_drd_sw: endpoint {
+			remote-endpoint = <&otg_sw>;
+		};
+	};
 };
 
 &usb3_phy1 {
@@ -1242,6 +1265,12 @@
 	pinctrl_keyb_rst_en: keyb_rst_en {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05	0x16 /* KeyB_RST_EN */
+		>;
+	};
+
+	pinctrl_otg_sw: otg_sw {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO10__GPIO1_IO10		0x1C4
 		>;
 	};
 };
