@@ -1720,10 +1720,12 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 		}
 		if (!of_property_read_u32(np,
 			"micbias-voltage-m-volts", &value)) {
-			/* 1250mV => 0 */
-			/* steps of 250mV */
-			if ((value >= 1250) && (value <= 3000))
-				sgtl5000->micbias_voltage = (value / 250) - 5;
+			/* Document Number: SGTL5000 */
+			/* Rev. 6.0, 11/2013 */
+			/* 800mV => 0 */
+			/* steps of 25mV */
+			if ((value >= 800) && (value <= 1575))
+				sgtl5000->micbias_voltage = (value / 25);
 			else {
 				sgtl5000->micbias_voltage = 0;
 				dev_err(&client->dev,
