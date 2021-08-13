@@ -676,7 +676,7 @@
 		VDDD-supply = <&reg_audio_vddd>;
 
 		micbias-resistor-k-ohms = <2>;
-		micbias-voltage-m-volts = <2250>;
+		micbias-voltage-m-volts = <1575>;
 
 		clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
 		clock-names = "mclk";
