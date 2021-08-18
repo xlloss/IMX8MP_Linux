@@ -540,6 +540,22 @@ config USB_NET_QMI_WWAN
 	  To compile this driver as a module, choose M here: the
 	  module will be called qmi_wwan.
 
+config USB_NET_SIMCOM_LTE_5G
+	tristate "SIMCOM 5G and LTE modems"
+	depends on USB_USBNET
+	select USB_WDM
+	help
+	  Support WWAN LTE/5G devices based on Qualcomm Mobile Data Modem
+	  (MDM) chipsets.  Examples of SIM8200
+
+	  This driver will only drive the ethernet part of the chips.
+	  The devices require additional configuration to be usable.
+	  Multiple management interfaces with linux drivers are
+	  available:
+
+	    * option: AT commands on /dev/ttyUSBx
+	    * cdc-wdm: Qualcomm MSM Interface (QMI) protocol on /dev/cdc-wdmx
+
 config USB_HSO
 	tristate "Option USB High Speed Mobile Devices"
 	depends on USB && RFKILL && TTY
