@@ -8,6 +8,8 @@
 #include <dt-bindings/usb/pd.h>
 #include "imx8mp.dtsi"
 
+#define LVDS_PANEL_G215HVN010
+
 / {
 	model = "DFI M8MP553 Board";
 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
@@ -250,6 +252,7 @@
 		power-supply = <&reg_lvds_panel>;
 		backlight-delay = <0>;
 
+		#if LVDS_PANEL_AM1024600DTZQWTD1H
 		panel-timing {
 			/* 1024x600 @60Hz : AM-1024600DTZQW-TD1H */
 			clock-frequency = <51000000>;
@@ -262,6 +265,22 @@
 			vfront-porch = <12>;
 			vback-porch = <23>;
 		};
+		#endif
+
+		#ifdef LVDS_PANEL_G215HVN010
+		panel-timing {
+			/* 1920x1080 @60Hz : G215HVN01.0 */
+			clock-frequency = <72000000>;
+			hactive = <1920>;
+			vactive = <1080>;
+			hsync-len = <44>;
+			hfront-porch = <88>;
+			hback-porch = <148>;
+			vsync-len = <5>;
+			vfront-porch = <4>;
+			vback-porch = <36>;
+		};
+		#endif
 
 		port {
 			panel_lvds0_in: endpoint {
@@ -752,6 +771,7 @@
 
 &ldb {
 	status = "okay";
+	fsl,dual-channel;
 	startup-delay-us = <20>;
 	lvds-channel@0 {
 		fsl,data-mapping = "spwg";
