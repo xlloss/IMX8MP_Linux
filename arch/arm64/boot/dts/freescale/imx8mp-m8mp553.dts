@@ -260,7 +260,7 @@
 
 		backlight = <&lvds_backlight>;
 		power-supply = <&reg_lvds_panel>;
-		backlight-delay = <5>;
+		backlight-delay = <20>;
 
 		#if LVDS_PANEL_AM1024600DTZQWTD1H
 		panel-timing {
