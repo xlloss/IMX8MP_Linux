@@ -241,6 +241,16 @@
 		status = "okay";
 	};
 
+	backlight_power: regulator-backlight_power {
+		compatible = "regulator-gpio";
+		regulator-name = "lcd_backlight_pwr";
+		regulator-min-microvolt = <0000001>;
+		regulator-max-microvolt = <3300000>;
+		gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		gpios-states = <0>;
+		states = <3300000 0x1 0000001 0x0>;
+	};
+
 	panel-lvds0 {
 		compatible = "panel-lvds";
 		status = "okay";
@@ -250,7 +260,7 @@
 
 		backlight = <&lvds_backlight>;
 		power-supply = <&reg_lvds_panel>;
-		backlight-delay = <0>;
+		backlight-delay = <5>;
 
 		#if LVDS_PANEL_AM1024600DTZQWTD1H
 		panel-timing {
@@ -294,7 +304,7 @@
 		pwms = <&pwm2 0 100000>; /* 10KHz*/
 		status = "okay";
 		pinctrl-0 = <&pinctrl_backlight_en>, <&pinctrl_backlight_pwm2>;
-		enable-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		power-supply = <&backlight_power>;
 		brightness-levels = < 0  1  2  3  4  5  6  7  8  9
 				     10 11 12 13 14 15 16 17 18 19
 				     20 21 22 23 24 25 26 27 28 29
@@ -772,7 +782,7 @@
 &ldb {
 	status = "okay";
 	fsl,dual-channel;
-	startup-delay-us = <20>;
+	startup-delay-us = <40>;
 	lvds-channel@0 {
 		fsl,data-mapping = "spwg";
 		fsl,data-width = <24>;

@@ -20,6 +20,9 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
+#define BL_VOLT_MAX 3300000
+#define BL_VOLT_MIN 0000001
+
 struct pwm_bl_data {
 	struct pwm_device	*pwm;
 	struct device		*dev;
@@ -60,6 +63,8 @@ static void pwm_backlight_power_on(struct pwm_bl_data *pb)
 	if (pb->post_pwm_on_delay)
 		msleep(pb->post_pwm_on_delay);
 
+	regulator_set_voltage(pb->power_supply, BL_VOLT_MAX, BL_VOLT_MAX);
+
 	if (pb->enable_gpio)
 		gpiod_set_value_cansleep(pb->enable_gpio, 1);
 
@@ -84,6 +89,7 @@ static void pwm_backlight_power_off(struct pwm_bl_data *pb)
 	state.duty_cycle = 0;
 	pwm_apply_state(pb->pwm, &state);
 
+	regulator_set_voltage(pb->power_supply, BL_VOLT_MIN, BL_VOLT_MIN);
 	regulator_disable(pb->power_supply);
 	pb->enabled = false;
 }
