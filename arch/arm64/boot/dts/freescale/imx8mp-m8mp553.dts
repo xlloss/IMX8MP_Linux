@@ -708,6 +708,14 @@
 		micbias-resistor-k-ohms = <2>;
 		micbias-voltage-m-volts = <1575>;
 
+		force-use-pll;
+
+		#define SGTL5000_SYS_FS_32k     0x0
+		#define SGTL5000_SYS_FS_44_1k   0x1
+		#define SGTL5000_SYS_FS_48k     0x2
+		#define SGTL5000_SYS_FS_96k     0x3
+		force-sample-rate = <SGTL5000_SYS_FS_44_1k>;
+
 		clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
 		clock-names = "mclk";
 		assigned-clock-rates = <24576000>;

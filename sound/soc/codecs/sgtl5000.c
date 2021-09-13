@@ -41,7 +41,7 @@
 /* default value of sgtl5000 registers */
 static const struct reg_default sgtl5000_reg_defaults[] = {
 	{ SGTL5000_CHIP_DIG_POWER,		0x0000 },
-	{ SGTL5000_CHIP_I2S_CTRL,		0x0010 },
+	{ SGTL5000_CHIP_I2S_CTRL,		0x01b0 },
 	{ SGTL5000_CHIP_SSS_CTRL,		0x0010 },
 	{ SGTL5000_CHIP_ADCDAC_CTRL,		0x020c },
 	{ SGTL5000_CHIP_DAC_VOL,		0x3c3c },
@@ -53,8 +53,8 @@ static const struct reg_default sgtl5000_reg_defaults[] = {
 	{ SGTL5000_CHIP_MIC_CTRL,		0x0000 },
 	{ SGTL5000_CHIP_LINE_OUT_CTRL,		0x0000 },
 	{ SGTL5000_CHIP_LINE_OUT_VOL,		0x0404 },
-	{ SGTL5000_CHIP_PLL_CTRL,		0x5000 },
-	{ SGTL5000_CHIP_CLK_TOP_CTRL,		0x0000 },
+	{ SGTL5000_CHIP_PLL_CTRL,		0x7599 },
+	{ SGTL5000_CHIP_CLK_TOP_CTRL,		0x0008 },
 	{ SGTL5000_CHIP_ANA_STATUS,		0x0000 },
 	{ SGTL5000_CHIP_SHORT_CTRL,		0x0000 },
 	{ SGTL5000_CHIP_ANA_TEST2,		0x0000 },
@@ -152,6 +152,8 @@ struct sgtl5000_priv {
 	u8 lrclk_strength;
 	u8 sclk_strength;
 	u16 mute_state[LAST_POWER_EVENT + 1];
+	u8 force_use_pll;
+	u8 force_use_sample;
 };
 
 static inline int hp_sel_input(struct snd_soc_component *component)
@@ -853,7 +855,7 @@ static int sgtl5000_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 		return -EINVAL;
 	}
 
-	snd_soc_component_write(component, SGTL5000_CHIP_I2S_CTRL, i2sctl);
+	/* snd_soc_component_write(component, SGTL5000_CHIP_I2S_CTRL, i2sctl); */
 
 	return 0;
 }
@@ -1474,7 +1476,7 @@ static int sgtl5000_enable_regulators(struct i2c_client *client)
 
 static int sgtl5000_probe(struct snd_soc_component *component)
 {
-	int ret;
+	int ret, clk_ctl;
 	u16 reg;
 	struct sgtl5000_priv *sgtl5000 = snd_soc_component_get_drvdata(component);
 	unsigned int zcd_mask = SGTL5000_HP_ZCD_EN | SGTL5000_ADC_ZCD_EN;
@@ -1525,6 +1527,17 @@ static int sgtl5000_probe(struct snd_soc_component *component)
 	/* Unmute DAC after start */
 	snd_soc_component_update_bits(component, SGTL5000_CHIP_ADCDAC_CTRL,
 		SGTL5000_DAC_MUTE_LEFT | SGTL5000_DAC_MUTE_RIGHT, 0);
+
+	snd_soc_component_update_bits(component, SGTL5000_CHIP_ANA_POWER,
+		SGTL5000_PLL_POWERUP | SGTL5000_VCOAMP_POWERUP,
+		SGTL5000_PLL_POWERUP | SGTL5000_VCOAMP_POWERUP);
+
+	clk_ctl = 0;
+	if (sgtl5000->force_use_pll) {
+		clk_ctl |= SGTL5000_MCLK_FREQ_PLL << SGTL5000_MCLK_FREQ_SHIFT;
+		clk_ctl |= sgtl5000->force_use_sample << SGTL5000_SYS_FS_SHIFT;
+	}
+	snd_soc_component_write(component, SGTL5000_CHIP_CLK_CTRL, clk_ctl);
 
 	return 0;
 
@@ -1634,7 +1647,7 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	}
 
 	/* Need 8 clocks before I2C accesses */
-	udelay(1);
+	udelay(5);
 
 	/* read chip information */
 	ret = regmap_read(sgtl5000->regmap, SGTL5000_CHIP_ID, &reg);
@@ -1733,6 +1746,16 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 			}
 		} else {
 			sgtl5000->micbias_voltage = 0;
+		}
+
+		sgtl5000->force_use_pll = of_property_read_bool(np,
+			"force-use-pll");
+
+		if (sgtl5000->force_use_pll) {
+			if (of_property_read_u32(np, "force-sample-rate", &value)) {
+				value = SGTL5000_SYS_FS_44_1k;
+			}
+			sgtl5000->force_use_sample = value;
 		}
 	}
 
