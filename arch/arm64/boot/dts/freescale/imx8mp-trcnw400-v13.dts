@@ -57,6 +57,7 @@
 		pinctrl-0 = <&pinctrl_isl79985a_rst>;
 		csi_id = <0>;
 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		cam_reset-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 
 		port@0 {
@@ -122,6 +123,7 @@
 	pinctrl_isl79985a_rst: isl79985a_rst {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19 /* ISL79985 1st RST */
+			MX8MP_IOMUXC_GPIO1_IO05__GPIO1_IO05	0x19 /* Camera RST */
 		>;
 	};
 

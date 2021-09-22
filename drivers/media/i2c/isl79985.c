@@ -150,6 +150,7 @@ struct isl79985 {
 	struct media_pad pad;
 	struct mutex mutex;
 	struct gpio_desc *reset_gpio;
+	struct gpio_desc *cam_reset_gpio;
 	u32 mbus_fmt_code;
 	u32 refclk_hz;
 	u32 slave_addr;
@@ -482,6 +483,15 @@ static void isl79985_reset(struct isl79985 *state)
 		return;
 	}
 
+	if (state->cam_reset_gpio) {
+		pr_err("%s %d\n", __func__, __LINE__);
+		gpiod_set_value_cansleep(state->cam_reset_gpio, 0);
+		usleep_range(500, 1000);
+		gpiod_set_value_cansleep(state->cam_reset_gpio, 1);
+		usleep_range(500, 1000);
+		gpiod_set_value_cansleep(state->cam_reset_gpio, 0);
+	}
+
 	gpiod_set_value_cansleep(state->reset_gpio, 1);
 	usleep_range(1000, 2000);
 
@@ -584,7 +594,6 @@ static int isl79985_g_mbus_config(struct v4l2_subdev *sd,
 static int isl79985_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct isl79985 *state = sd_to_state(sd);
-	struct i2c_client *client = state->i2c_client;
 
 	isl79985_s_power(sd, 0);
 	msleep(5);
@@ -870,9 +879,13 @@ static int isl79985_probe_of(struct isl79985 *state)
 						     GPIOD_OUT_HIGH);
 	if (IS_ERR(state->reset_gpio)) {
 		ret = -EINVAL;
+		dev_err(dev, "reset_gpio fail\n");
 		goto free_endpoint;
 	}
 
+	/* request optional camera reset pin */
+	state->cam_reset_gpio = devm_gpiod_get_optional(dev, "cam_reset",
+							GPIOD_OUT_LOW);
 	ret = 0;
 
 free_endpoint:
