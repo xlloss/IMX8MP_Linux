@@ -413,7 +413,7 @@
 	xhci_otg_sw: xhci_otg_sw {
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_otg_sw>;
-		compatible = "dfi, otg-sw";
+		compatible = "imx8, gpio-otg-sw";
 		role-gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
 
 		usb_con: connector {
