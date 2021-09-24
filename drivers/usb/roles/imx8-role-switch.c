@@ -18,20 +18,16 @@
 #include <linux/usb/role.h>
 #include <linux/gpio/consumer.h>
 
-#define DRV_NAME "m8mp553_otg_sw"
+#define DRV_NAME "imx_gpio_otg_sw"
 
-struct m8mp553_otg_sw_data {
+struct gpio_otg_sw_data {
 	struct device *dev;
 	struct usb_role_switch *role_sw;
 	struct gpio_desc *gpio_role;
 	int irq;
 };
 
-static const struct software_node m8mp553_otg_sw_node = {
-	"m8mp553-xhci-usb-sw",
-};
-
-static enum usb_role otg_sw_get_role(struct m8mp553_otg_sw_data *data)
+static enum usb_role otg_sw_get_role(struct gpio_otg_sw_data *data)
 {
 	enum usb_role role;
 	u32 val;
@@ -48,10 +44,10 @@ static enum usb_role otg_sw_get_role(struct m8mp553_otg_sw_data *data)
 
 static irqreturn_t otg_sw_isr(int irq, void *dev_id)
 {
-	struct m8mp553_otg_sw_data *data;
+	struct gpio_otg_sw_data *data;
 	int val;
 
-	data = (struct m8mp553_otg_sw_data *)dev_id;
+	data = (struct gpio_otg_sw_data *)dev_id;
 
 	val = gpiod_get_value(data->gpio_role);
 
@@ -63,10 +59,10 @@ static irqreturn_t otg_sw_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int m8mp553_otg_sw_probe(struct platform_device *pdev)
+static int gpio_otg_sw_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct m8mp553_otg_sw_data *data;
+	struct gpio_otg_sw_data *data;
 	char pin_name[5];
 	int ret, irq;
 	struct fwnode_handle *connector, *ep;
@@ -144,9 +140,9 @@ irq_fail:
 	return -EINVAL;
 }
 
-static int m8mp553_otg_sw_remove(struct platform_device *pdev)
+static int gpio_otg_sw_remove(struct platform_device *pdev)
 {
-	struct m8mp553_otg_sw_data *data = platform_get_drvdata(pdev);
+	struct gpio_otg_sw_data *data = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(&pdev->dev);
 	usb_role_switch_unregister(data->role_sw);
@@ -154,26 +150,26 @@ static int m8mp553_otg_sw_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct of_device_id m8mp553_otg_sw_of_match[] = {
+static const struct of_device_id gpio_otg_sw_of_match[] = {
 	{
-		.compatible = "dfi, otg-sw",
+		.compatible = "imx8, gpio-otg-sw",
 	},
 	{ /* end of table */ }
 };
-MODULE_DEVICE_TABLE(of, m8mp553_otg_sw_of_match);
+MODULE_DEVICE_TABLE(of, gpio_otg_sw_of_match);
 
-static struct platform_driver m8mp553_otg_sw_driver = {
+static struct platform_driver gpio_otg_sw_driver = {
 	.driver = {
 		.name = DRV_NAME,
-		.of_match_table = m8mp553_otg_sw_of_match,
+		.of_match_table = gpio_otg_sw_of_match,
 	},
 
-	.probe = m8mp553_otg_sw_probe,
-	.remove = m8mp553_otg_sw_remove,
+	.probe = gpio_otg_sw_probe,
+	.remove = gpio_otg_sw_remove,
 };
 
-module_platform_driver(m8mp553_otg_sw_driver);
+module_platform_driver(gpio_otg_sw_driver);
 
-MODULE_AUTHOR("slash.huang <slash.huang@linux.c.com>");
-MODULE_DESCRIPTION("DFI USB3 role switch driver");
+MODULE_AUTHOR("slash.huang <slash.linux.c@gmail.com>");
+MODULE_DESCRIPTION("IMX8 usb3 gpio role switch driver");
 MODULE_LICENSE("GPL");
