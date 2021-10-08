@@ -103,7 +103,6 @@ static int panel_lvds_enable(struct drm_panel *panel)
 {
 	struct panel_lvds *lvds = to_panel_lvds(panel);
 
-	msleep(lvds->bl_delay);
 	if (lvds->backlight) {
 		lvds->backlight->props.state &= ~BL_CORE_FBBLANK;
 		lvds->backlight->props.power = FB_BLANK_UNBLANK;
