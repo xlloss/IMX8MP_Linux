@@ -34,6 +34,8 @@ struct pwm_bl_data {
 	unsigned int		scale;
 	bool			legacy;
 	unsigned int		post_pwm_on_delay;
+	unsigned int		post_bl_on_delay;
+	unsigned int		post_en_on_delay;
 	unsigned int		pwm_off_delay;
 	int			(*notify)(struct device *,
 					  int brightness);
@@ -53,17 +55,23 @@ static void pwm_backlight_power_on(struct pwm_bl_data *pb)
 	if (pb->enabled)
 		return;
 
+	if (pb->post_bl_on_delay)
+		msleep(pb->post_bl_on_delay);
+
 	err = regulator_enable(pb->power_supply);
 	if (err < 0)
 		dev_err(pb->dev, "failed to enable power supply\n");
 
-	state.enabled = true;
-	pwm_apply_state(pb->pwm, &state);
+	regulator_set_voltage(pb->power_supply, BL_VOLT_MAX, BL_VOLT_MAX);
 
 	if (pb->post_pwm_on_delay)
 		msleep(pb->post_pwm_on_delay);
 
-	regulator_set_voltage(pb->power_supply, BL_VOLT_MAX, BL_VOLT_MAX);
+	state.enabled = true;
+	pwm_apply_state(pb->pwm, &state);
+
+	if (pb->post_en_on_delay)
+		msleep(pb->post_en_on_delay);
 
 	if (pb->enable_gpio)
 		gpiod_set_value_cansleep(pb->enable_gpio, 1);
@@ -89,8 +97,8 @@ static void pwm_backlight_power_off(struct pwm_bl_data *pb)
 	state.duty_cycle = 0;
 	pwm_apply_state(pb->pwm, &state);
 
-	regulator_set_voltage(pb->power_supply, BL_VOLT_MIN, BL_VOLT_MIN);
 	regulator_disable(pb->power_supply);
+	regulator_set_voltage(pb->power_supply, BL_VOLT_MIN, BL_VOLT_MIN);
 	pb->enabled = false;
 }
 
@@ -271,6 +279,12 @@ static int pwm_backlight_parse_dt(struct device *dev,
 	of_property_read_u32(node, "post-pwm-on-delay-ms",
 			     &data->post_pwm_on_delay);
 	of_property_read_u32(node, "pwm-off-delay-ms", &data->pwm_off_delay);
+
+	of_property_read_u32(node, "post-bl-on-delay-ms",
+			     &data->post_bl_on_delay);
+
+	of_property_read_u32(node, "post-en-on-delay-ms",
+			     &data->post_en_on_delay);
 
 	data->enable_gpio = -EINVAL;
 
@@ -506,11 +520,13 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	pb->dev = &pdev->dev;
 	pb->enabled = false;
 	pb->post_pwm_on_delay = data->post_pwm_on_delay;
+	pb->post_bl_on_delay = data->post_bl_on_delay;
+	pb->post_en_on_delay = data->post_en_on_delay;
 	pb->pwm_off_delay = data->pwm_off_delay;
 	strcpy(pb->fb_id, data->fb_id);
 
 	pb->enable_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
-						  GPIOD_ASIS);
+						  GPIOF_OUT_INIT_LOW);
 	if (IS_ERR(pb->enable_gpio)) {
 		ret = PTR_ERR(pb->enable_gpio);
 		goto err_alloc;
@@ -544,6 +560,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	    gpiod_get_direction(pb->enable_gpio) != 0)
 		gpiod_direction_output(pb->enable_gpio, 1);
 
+	gpiod_set_value_cansleep(pb->enable_gpio, 0);
 	pb->power_supply = devm_regulator_get(&pdev->dev, "power");
 	if (IS_ERR(pb->power_supply)) {
 		ret = PTR_ERR(pb->power_supply);
