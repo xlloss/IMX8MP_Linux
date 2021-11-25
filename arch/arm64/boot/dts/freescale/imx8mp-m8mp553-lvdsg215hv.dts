@@ -33,7 +33,7 @@
 				     80 81 82 83 84 85 86 87 88 89
 				     90 91 92 93 94 95 96 97 98 99
 				    100>;
-		default-brightness-level = <80>;
+		default-brightness-level = <100>;
 	};
 };
 
@@ -56,6 +56,7 @@
 };
 
 &panel {
+	status = "okay";
 	panel-timing {
 		/* 1920x1080 @60Hz : G215HVN01.0 */
 		clock-frequency = <72000000>;
