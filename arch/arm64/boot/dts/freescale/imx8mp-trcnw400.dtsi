@@ -98,7 +98,7 @@
 			regulator-name = "dac5571_bl";
 			regulator-type = "voltage";
 			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
-			gpios-states = <1>;
+			gpios-states = <0>;
 			states = <3300000 0x1 0000001 0x0>;
 			enable-at-boot;
 			status = "okay";
@@ -357,6 +357,7 @@
 		compatible = "dac5571,bl";
 		reg = <0x4c>;
 		pinctrl-names = "default";
+		backlight-boot-delayms = <500>;
 		bl-vcc-supply = <&reg_dac5571_bl>;
 		default-brightness-level = <80>;
 		status = "okay";
