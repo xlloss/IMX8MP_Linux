@@ -13,6 +13,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/gpio.h>
 #include <linux/regulator/consumer.h>
+#include <linux/timer.h>
 
 #define DEFAULT_BL_NAME "dac5571"
 #define MAX_BRIGHTNESS 100
@@ -30,6 +31,7 @@ struct dac5571 {
 	struct backlight_device *bl;
 	struct device *dev;
 	struct regulator *regulator;
+	struct timer_list bl_timer;
 };
 
 struct dac5571;
@@ -184,11 +186,20 @@ static int dac5571_backlight_register(struct dac5571 *dac5571_dev)
 	return 0;
 }
 
+void dac5571_bl_timeout(struct timer_list *t)
+{
+	struct dac5571 *dac5571 = from_timer(dac5571, t, bl_timer);
+
+	del_timer(&dac5571->bl_timer);
+	dac5571->bl->props.power = TOPCON_BL_ON;
+	dac5571_bl_on_off(dac5571, TOPCON_BL_ON);
+}
+
 static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 {
 	struct dac5571 *dac5571_dev;
 	int ret;
-	u32 def_bl_value;
+	u32 def_bl_value, bl_delay;
 
 	if (!i2c_check_functionality(cl->adapter,
 		I2C_FUNC_SMBUS_BYTE_DATA | I2C_FUNC_SMBUS_WORD_DATA))
@@ -216,6 +227,13 @@ static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 		def_bl_value = DEFAULT_BL_VALE;
 	}
 
+	ret = of_property_read_u32(cl->dev.of_node, "backlight-boot-delayms",
+				   &bl_delay);
+	if (ret < 0) {
+		dev_info(&cl->dev, "default bl_delay is 0\n");
+		bl_delay = 0;
+	}
+
 	dac5571_dev->initial_brightness = def_bl_value;
 	ret = dac5571_backlight_register(dac5571_dev);
 	if (ret) {
@@ -223,11 +241,12 @@ static int dac5571_probe(struct i2c_client *cl, const struct i2c_device_id *id)
 			"failed to register backlight. err: %d\n", ret);
 		return ret;
 	}
-
 	dac5571_dev->bl->props.state &= ~(BL_CORE_SUSPENDED | BL_CORE_FBBLANK);
-	dac5571_dev->bl->props.power = TOPCON_BL_ON;
-
+	dac5571_dev->bl->props.power = TOPCON_BL_OFF;
 	backlight_update_status(dac5571_dev->bl);
+	timer_setup(&dac5571_dev->bl_timer, dac5571_bl_timeout, 0);
+	dac5571_dev->bl_timer.expires = jiffies + msecs_to_jiffies(bl_delay);
+	mod_timer(&dac5571_dev->bl_timer, dac5571_dev->bl_timer.expires);
 	return 0;
 }
 
