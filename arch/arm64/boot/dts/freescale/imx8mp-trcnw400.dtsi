@@ -357,7 +357,7 @@
 		compatible = "dac5571,bl";
 		reg = <0x4c>;
 		pinctrl-names = "default";
-		backlight-boot-delayms = <500>;
+		backlight-boot-delayms = <1200>;
 		bl-vcc-supply = <&reg_dac5571_bl>;
 		default-brightness-level = <80>;
 		status = "okay";
