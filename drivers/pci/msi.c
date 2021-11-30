@@ -1039,6 +1039,7 @@ EXPORT_SYMBOL(pci_disable_msix);
 void pci_no_msi(void)
 {
 	pci_msi_enable = 0;
+	pr_info("%s", __func__);
 }
 
 /**
