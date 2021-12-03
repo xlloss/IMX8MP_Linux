@@ -1514,6 +1514,7 @@ static int dwc3_probe(struct platform_device *pdev)
 	struct resource		*res, dwc_res;
 	struct dwc3		*dwc;
 
+	bool clk_bypass;
 	int			ret;
 
 	void __iomem		*regs;
@@ -1562,26 +1563,31 @@ static int dwc3_probe(struct platform_device *pdev)
 		return PTR_ERR(dwc->reset);
 
 	if (dev->of_node) {
-		dwc->num_clks = ARRAY_SIZE(dwc3_core_clks);
+		clk_bypass = device_property_read_bool(dev, "byass_dwc_core_clk");
+		if (!clk_bypass) {
+			dwc->num_clks = ARRAY_SIZE(dwc3_core_clks);
 
-		ret = devm_clk_bulk_get(dev, dwc->num_clks, dwc->clks);
-		if (ret == -EPROBE_DEFER)
-			return ret;
-		/*
-		 * Clocks are optional, but new DT platforms should support all
-		 * clocks as required by the DT-binding.
-		 */
-		if (ret)
-			dwc->num_clks = 0;
+			ret = devm_clk_bulk_get(dev, dwc->num_clks, dwc->clks);
+			if (ret == -EPROBE_DEFER)
+				return ret;
+			/*
+			* Clocks are optional, but new DT platforms should support all
+			* clocks as required by the DT-binding.
+			*/
+			if (ret)
+				dwc->num_clks = 0;
+		}
 	}
 
 	ret = reset_control_deassert(dwc->reset);
 	if (ret)
 		return ret;
 
-	ret = clk_bulk_prepare_enable(dwc->num_clks, dwc->clks);
-	if (ret)
-		goto assert_reset;
+	if (!clk_bypass) {
+		ret = clk_bulk_prepare_enable(dwc->num_clks, dwc->clks);
+		if (ret)
+			goto assert_reset;
+	}
 
 	if (!dwc3_core_is_valid(dwc)) {
 		dev_err(dwc->dev, "this is not a DesignWare USB3 DRD Core\n");

@@ -823,6 +823,7 @@
 	srp-disable;
 	adp-disable;
 	usb-role-switch;
+	byass_dwc_core_clk;
 	status = "okay";
 
 	port {
@@ -844,6 +845,7 @@
 &usb_dwc3_1 {
 	dr_mode = "host";
 	status = "okay";
+	byass_dwc_core_clk;
 };
 
 &usdhc2 {
