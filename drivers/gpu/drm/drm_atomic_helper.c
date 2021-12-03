@@ -2125,6 +2125,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 	struct drm_crtc_commit *commit;
 	int i;
 	long ret;
+	#define TIMEOUT (1 * HZ)
 
 	for_each_old_crtc_in_state(old_state, crtc, old_crtc_state, i) {
 		commit = old_crtc_state->commit;
@@ -2133,7 +2134,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 			continue;
 
 		ret = wait_for_completion_timeout(&commit->hw_done,
-						  10*HZ);
+						  TIMEOUT);
 		if (ret == 0)
 			DRM_ERROR("[CRTC:%d:%s] hw_done timed out\n",
 				  crtc->base.id, crtc->name);
@@ -2141,7 +2142,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 		/* Currently no support for overwriting flips, hence
 		 * stall for previous one to execute completely. */
 		ret = wait_for_completion_timeout(&commit->flip_done,
-						  10*HZ);
+						  TIMEOUT);
 		if (ret == 0)
 			DRM_ERROR("[CRTC:%d:%s] flip_done timed out\n",
 				  crtc->base.id, crtc->name);
@@ -2154,7 +2155,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 			continue;
 
 		ret = wait_for_completion_timeout(&commit->hw_done,
-						  10*HZ);
+						  TIMEOUT);
 		if (ret == 0)
 			DRM_ERROR("[CONNECTOR:%d:%s] hw_done timed out\n",
 				  conn->base.id, conn->name);
@@ -2162,7 +2163,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 		/* Currently no support for overwriting flips, hence
 		 * stall for previous one to execute completely. */
 		ret = wait_for_completion_timeout(&commit->flip_done,
-						  10*HZ);
+						  TIMEOUT);
 		if (ret == 0)
 			DRM_ERROR("[CONNECTOR:%d:%s] flip_done timed out\n",
 				  conn->base.id, conn->name);
@@ -2175,7 +2176,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 			continue;
 
 		ret = wait_for_completion_timeout(&commit->hw_done,
-						  10*HZ);
+						  TIMEOUT);
 		if (ret == 0)
 			DRM_ERROR("[PLANE:%d:%s] hw_done timed out\n",
 				  plane->base.id, plane->name);
@@ -2183,7 +2184,7 @@ void drm_atomic_helper_wait_for_dependencies(struct drm_atomic_state *old_state)
 		/* Currently no support for overwriting flips, hence
 		 * stall for previous one to execute completely. */
 		ret = wait_for_completion_timeout(&commit->flip_done,
-						  10*HZ);
+						  TIMEOUT);
 		if (ret == 0)
 			DRM_ERROR("[PLANE:%d:%s] flip_done timed out\n",
 				  plane->base.id, plane->name);

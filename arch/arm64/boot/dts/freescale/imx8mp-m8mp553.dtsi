@@ -376,6 +376,12 @@
 		};
 
 	};
+
+	display-subsystem {
+		compatible = "fsl,imx-display-subsystem";
+		ports = <&lcdif3_disp>, <&lcdif2_disp>;
+	};
+
 };
 
 &clk {
