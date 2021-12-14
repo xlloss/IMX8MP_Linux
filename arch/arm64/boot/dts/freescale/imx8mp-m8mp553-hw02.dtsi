@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2021 DFI
+ * slash.huang@dfi.com
+ */
+
+#include <dt-bindings/usb/pd.h>
+
+/ {
+	model = "DFI M8MP553 Board HW v02";
+	compatible = "dfi,m8mp553", "fsl,imx8mp";
+
+};
+
+&reg_gpio_usb_hub {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usb_hub_en_hw02>;
+		gpios = <&gpio3 20 GPIO_ACTIVE_LOW>;
+		status = "okay";
+};
+
+&reg_gpio_usb2_hdr {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usb2_hdr_en_hw02>;
+		gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
+		status = "okay";
+};
+
+&flexcan2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan2>;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl_usb_hub_en_hw02: usb_hub_en {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_RXC__GPIO3_IO20 0x16 /* USB Hub Enable */
+		>;
+	};
+
+	pinctrl_usb2_hdr_en_hw02: usb2_hdr_en {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_RXFS__GPIO3_IO19 0x16 /* USB 2.0-HDR Enable */
+		>;
+	};
+
+	pinctrl_flexcan2: flexcan2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI5_MCLK__CAN2_RX 0x154
+			MX8MP_IOMUXC_SAI5_RXD3__CAN2_TX 0x154
+		>;
+	};
+};
