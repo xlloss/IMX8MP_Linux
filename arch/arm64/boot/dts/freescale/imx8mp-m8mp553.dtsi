@@ -1399,7 +1399,6 @@
 &resmem {
 	linux,cma {
 		compatible = "shared-dma-pool";
-		/delete-property/ alloc-ranges;
 		size = <0 0x28000000>;
 	};
 };
